@@ -37,7 +37,7 @@ def source_version(text, tag):
     require(version and code and sdk, 'Missing source version or SDK')
     require(tag == 'kotlin-v' + version[1], 'Tag does not match source versionName')
     require(0 < int(code[1]) <= 2147483647, 'Invalid versionCode')
-    require(int(sdk[1]) == 21, 'Release must retain API21 compatibility')
+    require(int(sdk[1]) == 19, 'Release must retain API19 compatibility')
     return version[1], int(code[1]), int(sdk[1])
 
 
@@ -56,7 +56,7 @@ def validate_apk(badging, signature, version, code, sdk):
     require(minimum and minimum[1] == str(sdk), 'APK minSdk mismatch')
     certs = re.findall(r'^Signer #\d+ certificate SHA-256 digest: ([0-9a-fA-F]+)$', signature, re.M)
     require(certs == [CERTIFICATE], 'APK must use the original release certificate')
-    require(re.search(r'^Verified using v1 scheme .*: true$', signature, re.M), 'API21 requires verified v1 signing')
+    require(re.search(r'^Verified using v1 scheme .*: true$', signature, re.M), 'API 19 (KitKat) requires verified v1/JAR signing')
 
 
 def sha256(path):
@@ -67,10 +67,10 @@ def sha256(path):
 def metadata(tag, version, code, sdk, commit, name, size, digest):
     require(tag == 'kotlin-v' + version, 'Metadata tag mismatch')
     version_tuple(tag)
-    require(name == f'hongguotv-kotlin-{version}-android5.apk', 'Unsafe APK filename')
+    require(name == f'hongguotv-kotlin-{version}-android4.apk', 'Unexpected APK filename (android4.apk required)')
     require(re.fullmatch(r'[0-9a-f]{40}', commit), 'Invalid source commit')
     require(re.fullmatch(r'[0-9a-f]{64}', digest), 'Invalid APK digest')
-    require(0 < size <= 80 * 1024 * 1024 and sdk == 21 and 0 < code <= 2147483647, 'Invalid APK size/SDK/versionCode')
+    require(0 < size <= 80 * 1024 * 1024 and sdk == 19 and 0 < code <= 2147483647, 'Invalid APK size/API 19 SDK/versionCode')
     return dict(schema=1, packageName=PACKAGE, versionCode=code, versionName=version,
                 minSdk=sdk, tag=tag, sourceCommit=commit,
                 apk=dict(name=name, size=size, sha256=digest), notes=NOTES)
@@ -115,29 +115,42 @@ def prepare(tag):
     safe_source_paths(paths)
     out = ROOT / 'outputs'
     out.mkdir(exist_ok=True)
-    apk = out / f'hongguotv-kotlin-{version}-android5.apk'
+    apk = out / f'hongguotv-kotlin-{version}-android4.apk'
     shutil.copy2(ROOT / 'kotlin-tv/app/build/outputs/apk/release/app-release.apk', apk)
     buildtools = Path(os.environ['ANDROID_HOME']) / 'build-tools/36.0.0'
     validate_apk(run(str(buildtools / 'aapt'), 'dump', 'badging', str(apk)),
-                 run(str(buildtools / 'apksigner'), 'verify', '--verbose', '--min-sdk-version', '21', '--print-certs', str(apk)), version, code, sdk)
+                 run(str(buildtools / 'apksigner'), 'verify', '--verbose', '--min-sdk-version', '19', '--print-certs', str(apk)), version, code, sdk)
+    # API 19 disables the native FFmpeg JNI build (see decoder-ffmpeg/build.gradle.kts):
+    # the APK ships no libffmpegJNI.so and FfmpegLibrary.isAvailable() stays false, so
+    # Media3 falls back to the platform decoder on Android 4.4.2. Do not require the
+    # library, but if one is ever shipped it must cover every declared ABI, so a
+    # half-built native decoder can never be released.
     with zipfile.ZipFile(apk) as package:
-        required = {f'lib/{abi}/libffmpegJNI.so' for abi in ('armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64')}
-        require(required <= set(package.namelist()), 'APK missing Android 5 AAC native decoder ABI')
+        names = set(package.namelist())
+        abis = ('armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64')
+        shipped = {abi for abi in abis if f'lib/{abi}/libffmpegJNI.so' in names}
+        require(not shipped or shipped == set(abis), 'Incomplete native decoder ABI coverage')
     data = metadata(tag, version, code, sdk, commit, apk.name, apk.stat().st_size, sha256(apk))
     manifest = out / 'update.json'
     manifest.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
     source = out / f'hongguotv-{tag}-source.zip'
     run('git', 'archive', '--format=zip', f'--prefix=hongguotv-{tag}/', '--output', str(source), 'HEAD')
-    # Ship the exact native dependency sources alongside wrapper/relink build scripts.
+    # API 19 ships no FFmpeg JNI library, so the upstream FFmpeg tarball is no longer
+    # required in the release; the source ZIP already carries the module's LICENSE-FFmpeg
+    # and JNI glue via git archive. If the pinned archive is already present locally,
+    # still bundle it (source_archive() re-verifies its SHA-256) for third-party licence
+    # completeness. Never fetch it from the network here, and never rely on the removed
+    # native build to have produced it.
     spec = importlib.util.spec_from_file_location('native_audio', ROOT / 'kotlin-tv/decoder-ffmpeg/tools/build_native.py')
     native_audio = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(native_audio)
-    archive = native_audio.source_archive()
-    with zipfile.ZipFile(source, 'a', compression=zipfile.ZIP_STORED) as bundle:
-        bundle.write(archive, f'hongguotv-{tag}/third-party/{archive.name}')
+    archive = native_audio.MODULE / 'build' / f'ffmpeg-{native_audio.VERSION}.tar.xz'
+    if archive.exists():
+        with zipfile.ZipFile(source, 'a', compression=zipfile.ZIP_STORED) as bundle:
+            bundle.write(native_audio.source_archive(), f'hongguotv-{tag}/third-party/{archive.name}')
     checks = out / 'SHA256SUMS'
     checks.write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in (apk, source, manifest)))
-    (out / 'release-notes.md').write_text(f'''红果 TV {version}（versionCode {code}），Android 5.0+。\n\n{NOTES}\n\n原发布证书签名，可同签名覆盖安装并保留本机记录。旧 0.9 更新器不识别 API21 元数据，首次需手动安装，请勿先卸载。\n\n源码提交：{commit}。附 APK、对应完整源码 ZIP（含 GPL-3.0 和第三方许可）、update.json、SHA256SUMS。验收基于 Android 模拟器，不代表覆盖所有厂商真机。\n\n构建要求与步骤见源码 kotlin-tv/AUTO_UPDATES.md；版本取自该标签的 Gradle 配置，不使用运行次数改写版本。\n''')
+    (out / 'release-notes.md').write_text(f'''红果 TV {version}（versionCode {code}），Android 4.4 / API 19 及以上兼容目标。\n\n{NOTES}\n\n本版为兼容 Android 4.4.2（API 19）改造：FFmpeg 原生 JNI 解码已禁用，不再随 APK 分发 libffmpegJNI.so，音频解码降级为系统平台解码器（软解）。\n\n原发布证书签名，可同签名覆盖安装并保留本机记录。旧 0.9/0.10 更新器不识别 minSdk 19 元数据，首次需手动同签名覆盖安装，请勿先卸载。\n\n源码提交：{commit}。附 APK、对应完整源码 ZIP（含 GPL-3.0 和第三方许可）、update.json、SHA256SUMS。验收基于 Android 模拟器，不代表覆盖所有厂商真机。\n\n构建要求与步骤见源码 kotlin-tv/AUTO_UPDATES.md；版本取自该标签的 Gradle 配置，不使用运行次数改写版本。\n''')
     return data, [apk, source, manifest, checks]
 
 

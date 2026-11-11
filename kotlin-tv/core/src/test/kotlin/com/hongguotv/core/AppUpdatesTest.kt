@@ -25,16 +25,26 @@ class AppUpdatesTest {
         assertTrue(update.newerThan(9, 26)); assertFalse(update.newerThan(10001, 36)); assertFalse(update.newerThan(10002, 36)); assertFalse(update.newerThan(9, 25))
     }
     @Test fun legacyAndroidReceivesOnlyCompatibleUpdates() {
-        val o = json().put("minSdk", 21)
-        o.getJSONObject("apk").put("name", "hongguotv-kotlin-0.10.0-android5.apk")
+        val o = json().put("minSdk", 19)
+        o.getJSONObject("apk").put("name", "hongguotv-kotlin-0.10.0-android4.apk")
         val update = AppUpdate.parse(o.toString())
-        for (sdk in listOf(21, 22, 23, 24, 25, 26, 36)) assertTrue(update.newerThan(9, sdk))
-        assertFalse(update.newerThan(9, 20))
-        assertFalse(update.newerThan(10001, 21))
-        for (sdk in listOf(19, 20)) assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(o.put("minSdk", sdk).toString()) }
+        for (sdk in listOf(19, 20, 21, 22, 23, 24, 25, 26, 36)) assertTrue(update.newerThan(9, sdk))
+        for (sdk in listOf(18, 17, 1)) assertFalse(update.newerThan(9, sdk))
+        assertFalse(update.newerThan(10001, 19))
+        for (sdk in listOf(18, 17, 1, 0)) assertThrows(IllegalArgumentException::class.java) {
+            AppUpdate.parse(json().put("minSdk", sdk).toString())
+        }
+        for (name in listOf("hongguotv-kotlin-0.10.0-android5.apk", "hongguotv-kotlin-0.10.0-android8.apk")) {
+            val legacy = json().put("minSdk", 21)
+            legacy.getJSONObject("apk").put("name", name)
+            assertEquals(name, AppUpdate.parse(legacy.toString()).fileName)
+        }
     }
     @Test fun downloadUrlUsesOnlyFixedRepositoryAndValidatedNames() {
         assertEquals("https://github.com/N3urda/hongguoTV/releases/download/kotlin-v0.9.0-build.1/hongguotv-kotlin-0.9.0-build.1-android8.apk", update().downloadUrl)
+        val android4 = json()
+        android4.getJSONObject("apk").put("name", "hongguotv-kotlin-0.9.0-build.1-android4.apk")
+        assertEquals("https://github.com/N3urda/hongguoTV/releases/download/kotlin-v0.9.0-build.1/hongguotv-kotlin-0.9.0-build.1-android4.apk", AppUpdate.parse(android4.toString()).downloadUrl)
         for (value in listOf("../../bad.apk", "evil.apk", "https://example.com/evil.apk", "hongguotv-kotlin-1/2-android8.apk")) {
             val o = json(); o.getJSONObject("apk").put("name", value)
             assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(o.toString()) }

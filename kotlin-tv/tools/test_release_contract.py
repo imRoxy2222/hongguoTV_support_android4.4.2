@@ -14,17 +14,17 @@ SPEC.loader.exec_module(r)
 
 class ReleaseContractTest(unittest.TestCase):
     def setUp(self):
-        self.build = 'versionName = env ?: "0.10.0"\nversionCode = env ?: 10\nminSdk = 21'
+        self.build = 'versionName = env ?: "0.10.0"\nversionCode = env ?: 10\nminSdk = 19'
         self.tag = 'kotlin-v0.10.0'
-        self.badging = "package: name='com.hongguotv.nativeapp' versionCode='10' versionName='0.10.0'\nsdkVersion:'21'"
+        self.badging = "package: name='com.hongguotv.nativeapp' versionCode='10' versionName='0.10.0'\nsdkVersion:'19'"
         self.signature = f'Verified using v1 scheme (JAR signing): true\nSigner #1 certificate SHA-256 digest: {r.CERTIFICATE}'
 
     def test_current_source_version(self):
         build = (ROOT / 'kotlin-tv/app/build.gradle.kts').read_text()
-        self.assertEqual(('0.11.1', 13, 21), r.source_version(build, 'kotlin-v0.11.1'))
+        self.assertEqual(('0.11.1', 13, 19), r.source_version(build, 'kotlin-v0.11.1'))
 
     def test_source_version(self):
-        self.assertEqual(('0.10.0', 10, 21), r.source_version(self.build, self.tag))
+        self.assertEqual(('0.10.0', 10, 19), r.source_version(self.build, self.tag))
 
     def test_reject_wrong_tag(self):
         for tag in ['kotlin-v0.9.0', '../x', 'kotlin-v0.10.0+1', 'kotlin-v0.10.0-build.1', 'kotlin-v00.10.0']:
@@ -32,20 +32,20 @@ class ReleaseContractTest(unittest.TestCase):
                 r.source_version(self.build, tag)
 
     def test_invalid_source_sdk_code(self):
-        for build in [self.build.replace('minSdk = 21', 'minSdk = 26'), self.build.replace('?: 10', '?: 0')]:
+        for build in [self.build.replace('minSdk = 19', 'minSdk = 26'), self.build.replace('?: 10', '?: 0')]:
             with self.assertRaises(ValueError):
                 r.source_version(build, self.tag)
 
     def test_real_apk_contract(self):
-        r.validate_apk(self.badging, self.signature, '0.10.0', 10, 21)
-        for badging in [self.badging.replace("'21'", "'26'"), self.badging.replace("'10'", "'9'"), self.badging.replace('nativeapp', 'debug')]:
+        r.validate_apk(self.badging, self.signature, '0.10.0', 10, 19)
+        for badging in [self.badging.replace("'19'", "'26'"), self.badging.replace("'10'", "'9'"), self.badging.replace('nativeapp', 'debug')]:
             with self.assertRaises(ValueError):
-                r.validate_apk(badging, self.signature, '0.10.0', 10, 21)
+                r.validate_apk(badging, self.signature, '0.10.0', 10, 19)
 
     def test_original_signer_and_v1_required(self):
         for signature in [self.signature.replace(r.CERTIFICATE, '0' * 64), self.signature.replace('true', 'false'), self.signature + '\nSigner #2 certificate SHA-256 digest: ' + r.CERTIFICATE]:
             with self.assertRaises(ValueError):
-                r.validate_apk(self.badging, signature, '0.10.0', 10, 21)
+                r.validate_apk(self.badging, signature, '0.10.0', 10, 19)
 
     def test_archive_path_guards(self):
         r.safe_source_paths(['LICENSE', '.env.example', 'kotlin-tv/app/build.gradle.kts'])
@@ -54,14 +54,14 @@ class ReleaseContractTest(unittest.TestCase):
                 r.safe_source_paths([path])
 
     def manifest(self, **changes):
-        args = dict(tag=self.tag, version='0.10.0', code=10, sdk=21, commit='a' * 40,
-                    name='hongguotv-kotlin-0.10.0-android5.apk', size=1, digest='b' * 64)
+        args = dict(tag=self.tag, version='0.10.0', code=10, sdk=19, commit='a' * 40,
+                    name='hongguotv-kotlin-0.10.0-android4.apk', size=1, digest='b' * 64)
         args.update(changes)
         return r.metadata(**args)
 
     def test_metadata(self):
         data = self.manifest()
-        self.assertEqual(21, data['minSdk'])
+        self.assertEqual(19, data['minSdk'])
         self.assertEqual(10, data['versionCode'])
         self.assertEqual(r.PACKAGE, data['packageName'])
         for changes in [dict(size=0), dict(size=80 * 1024 * 1024 + 1), dict(digest='x'), dict(commit='HEAD'), dict(name='../a.apk'), dict(code=0), dict(sdk=26)]:

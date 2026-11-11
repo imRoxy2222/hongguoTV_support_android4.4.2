@@ -1,7 +1,7 @@
 plugins { kotlin("jvm"); application }
 kotlin { jvmToolchain(17) }
 dependencies {
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:3.12.13")
     implementation("org.bouncycastle:bcprov-jdk18on:1.79")
     implementation("org.json:json:20240303")
     implementation("org.jsoup:jsoup:1.23.2")

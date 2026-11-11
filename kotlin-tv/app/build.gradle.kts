@@ -19,7 +19,9 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = "com.hongguotv.nativeapp"
-        minSdk = 21
+        minSdk = 19
+        // ART loads secondary dex files natively only from API 21; KitKat needs MultiDex.
+        multiDexEnabled = true
         targetSdk = 36
         versionCode = System.getenv("HONGGUOTV_VERSION_CODE")?.toInt() ?: 13
         versionName = System.getenv("HONGGUOTV_VERSION_NAME") ?: "0.11.1"
@@ -63,18 +65,19 @@ android {
 
 dependencies {
     testImplementation("junit:junit:4.13.2")
-    testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:3.12.13")
     testImplementation("org.robolectric:robolectric:4.14.1") {
         // API 23 tests use legacy graphics, without the cross-platform native renderer.
         exclude(group = "org.robolectric", module = "nativeruntime-dist-compat")
     }
     implementation("androidx.core:core:1.8.0")
+    implementation("androidx.multidex:multidex:2.0.1")
     implementation("com.google.zxing:core:3.5.3")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:3.12.13")
     implementation(project(":decoder-ffmpeg"))
     implementation(project(":core")) { exclude(group = "org.json") }
-    implementation("androidx.media3:media3-exoplayer:1.8.0")
-    implementation("androidx.media3:media3-exoplayer-hls:1.8.0")
-    implementation("androidx.media3:media3-ui:1.8.0")
+    implementation("androidx.media3:media3-exoplayer:1.4.1")
+    implementation("androidx.media3:media3-exoplayer-hls:1.4.1")
+    implementation("androidx.media3:media3-ui:1.4.1")
 }

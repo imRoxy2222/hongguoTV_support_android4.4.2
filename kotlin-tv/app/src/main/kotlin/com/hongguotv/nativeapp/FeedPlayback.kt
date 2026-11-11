@@ -7,9 +7,8 @@ import android.content.Context
 import android.view.View
 import androidx.media3.common.*
 import androidx.media3.exoplayer.*
+import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
-import androidx.media3.exoplayer.source.preload.DefaultPreloadManager
-import androidx.media3.exoplayer.source.preload.TargetPreloadStatusControl
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.hongguotv.core.*
@@ -358,27 +357,8 @@ internal fun shouldSelfHealTrial(
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class Media3TrialPlayback(context: Context) : TrialPlayback {
-    private var currentIndex = 0
-    private var preloading = false
-    private val preloadBuilder =
-        DefaultPreloadManager.Builder(
-                context,
-                TargetPreloadStatusControl<Int, DefaultPreloadManager.PreloadStatus> { index ->
-                    // Keep parsed tracks and existing samples during hand-off; NOT_PRELOADED clears
-                    // them.
-                    if (!preloading || index == currentIndex)
-                        DefaultPreloadManager.PreloadStatus.TRACKS_SELECTED
-                    else
-                        when (index - currentIndex) {
-                            1 -> DefaultPreloadManager.PreloadStatus.specifiedRangeLoaded(1500L)
-                            -1 -> DefaultPreloadManager.PreloadStatus.specifiedRangeLoaded(1000L)
-                            2,
-                            3 -> DefaultPreloadManager.PreloadStatus.TRACKS_SELECTED
-                            else -> null
-                        }
-                },
-            )
-            .setRenderersFactory(playbackRenderers(context))
+    private val player =
+        ExoPlayer.Builder(context, playbackRenderers(context))
             .setLoadControl(
                 DefaultLoadControl.Builder()
                     .setBufferDurationsMs(2500, 10000, 500, 1000)
@@ -386,9 +366,16 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
                     .setPrioritizeTimeOverSizeThresholds(false)
                     .build()
             )
-    private val preloadManager = preloadBuilder.build()
-    private val player = preloadBuilder.buildExoPlayer()
-    private val items = linkedMapOf<String, MediaItem>()
+            .build()
+
+    /**
+     * Media3 1.4.1 is the last release declaring minSdk 19. It has no
+     * DefaultPreloadManager (introduced in 1.5.0 together with minSdk 21), so
+     * neighbouring episodes are registered as reusable MediaSource objects
+     * instead of being pre-buffered. This also keeps memory pressure lower on
+     * Android 4.4 TVs.
+     */
+    private val sources = linkedMapOf<String, MediaSource>()
     private val surface =
         PlayerView(context).apply {
             useController = false
@@ -398,14 +385,8 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
             this.player = this@Media3TrialPlayback.player
         }
 
-    override fun canPrefetch(): Boolean {
-        val allowed = player.isPlaying && player.totalBufferedDuration >= 1500
-        if (allowed != preloading) {
-            preloading = allowed
-            preloadManager.invalidate()
-        }
-        return allowed
-    }
+    override fun canPrefetch(): Boolean =
+        player.isPlaying && player.totalBufferedDuration >= 1500
 
     override val view: View
         get() = surface
@@ -474,7 +455,7 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
 
     private fun key(clip: TrialClip) = clip.detail.series.id + ":" + clip.episodeId
 
-    private fun source(clip: TrialClip) =
+    private fun source(clip: TrialClip): MediaSource =
         ProgressiveMediaSource.Factory { VideoDataSource(clip.video) }
             .createMediaSource(
                 MediaItem.Builder()
@@ -484,26 +465,20 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
                     .build()
             )
 
-    override fun setCurrentIndex(index: Int) {
-        currentIndex = index
-        preloading = false
-        preloadManager.setCurrentPlayingIndex(index)
-        preloadManager.invalidate()
+    /** No ranking to maintain without a preload manager; the contract is kept. */
+    override fun setCurrentIndex(index: Int) = Unit
+
+    private fun register(clip: TrialClip): MediaItem {
+        val id = key(clip)
+        return sources.getOrPut(id) { source(clip) }.mediaItem
     }
 
-    private fun register(clip: TrialClip, index: Int): MediaItem =
-        items.getOrPut(key(clip)) {
-            val source = source(clip)
-            preloadManager.add(source, index)
-            source.mediaItem
-        }
-
     private fun play(clip: TrialClip, position: Long, autoplay: Boolean) {
-        val item = register(clip, currentIndex)
+        val item = register(clip)
         activeId = key(clip)
         startedAt = android.os.SystemClock.elapsedRealtime()
         player.setMediaSource(
-            checkNotNull(preloadManager.getMediaSource(item)),
+            checkNotNull(sources[item.mediaId]),
             position.coerceAtLeast(0),
         )
         player.prepare()
@@ -514,26 +489,21 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
         play(clip, position, autoplay)
 
     override fun queue(clip: TrialClip, index: Int) {
-        register(clip, index)
-        preloadManager.invalidate()
+        register(clip)
     }
 
     override fun remove(seriesId: String) {
-        val id = items.keys.firstOrNull { it.startsWith("$seriesId:") } ?: return
-        if (id != activeId) items.remove(id)?.let { preloadManager.remove(it) }
+        val id = sources.keys.firstOrNull { it.startsWith("$seriesId:") } ?: return
+        if (id != activeId) sources.remove(id)
     }
 
     override fun select(clip: TrialClip, position: Long, autoplay: Boolean): Boolean {
-        if (key(clip) !in items) return false
+        if (key(clip) !in sources) return false
         play(clip, position, autoplay)
         return true
     }
 
-    override fun pause() {
-        player.pause()
-        preloading = false
-        preloadManager.invalidate()
-    }
+    override fun pause() = player.pause()
 
     override fun resume() = player.play()
 
@@ -546,18 +516,15 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
 
     override fun clear() {
         activeId = null
-        preloading = false
         player.stop()
         player.clearMediaItems()
-        preloadManager.reset()
-        items.clear()
+        sources.clear()
     }
 
     override fun release() {
         status = null
         surface.player = null
         player.release()
-        preloadManager.release()
-        items.clear()
+        sources.clear()
     }
 }

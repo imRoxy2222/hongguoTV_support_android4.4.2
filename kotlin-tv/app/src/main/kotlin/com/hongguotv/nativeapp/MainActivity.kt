@@ -55,7 +55,7 @@ class MainActivity : Activity() {
     private var relaySpeedWatch: Runnable? = null
     private val relayStore by lazy { RelayStore(this) }
     private val relayHttp: okhttp3.OkHttpClient by lazy {
-        okhttp3.OkHttpClient.Builder()
+        HttpCompat.newBuilder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(5, TimeUnit.SECONDS)
             .callTimeout(8, TimeUnit.SECONDS)
@@ -217,8 +217,10 @@ class MainActivity : Activity() {
     private var foreground = false
     private lateinit var connectivity: ConnectivityManager
     private var networkRegistered = false
-    private val networkCallback =
-        object : ConnectivityManager.NetworkCallback() {
+    /** ConnectivityManager.NetworkCallback only exists from API 21. */
+    private val networkCallback: ConnectivityManager.NetworkCallback? =
+        if (Build.VERSION.SDK_INT < 21) null
+        else object : ConnectivityManager.NetworkCallback() {
             private fun changed() {
                 main.post {
                     if (connectivity.isActiveNetworkMetered || !networkAvailable()) cancelPrefetch()
@@ -529,17 +531,20 @@ class MainActivity : Activity() {
                     !cloudAccount.showing
             }
         connectivity = NetworkCompat.manager(this)
-        runCatching {
-            if (android.os.Build.VERSION.SDK_INT >= 24)
-                connectivity.registerDefaultNetworkCallback(networkCallback)
-            else
-                connectivity.registerNetworkCallback(
-                    android.net.NetworkRequest.Builder()
-                        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                        .build(),
-                    networkCallback,
-                )
-            networkRegistered = true
+        val callback = networkCallback
+        if (callback != null) {
+            runCatching {
+                if (android.os.Build.VERSION.SDK_INT >= 24)
+                    connectivity.registerDefaultNetworkCallback(callback)
+                else
+                    connectivity.registerNetworkCallback(
+                        android.net.NetworkRequest.Builder()
+                            .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                            .build(),
+                        callback,
+                    )
+                networkRegistered = true
+            }
         }
         favoriteMonitor = FavoriteMonitor(library, repository) { refreshFavoriteLabels() }
         mediaSession =
@@ -5008,7 +5013,7 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         generation++
         cancelWork()
-        if (networkRegistered) connectivity.unregisterNetworkCallback(networkCallback)
+        if (networkRegistered) networkCallback?.let { connectivity.unregisterNetworkCallback(it) }
         social.destroy()
         favoriteMonitor.destroy()
         tvTools.destroy()

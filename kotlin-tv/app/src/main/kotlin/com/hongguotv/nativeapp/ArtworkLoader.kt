@@ -26,6 +26,7 @@ import kotlin.math.min
 import okhttp3.Call
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import com.hongguotv.core.HttpCompat
 
 /**
  * Page-owned artwork requests. Public methods are called on the UI thread; decoding stays on
@@ -77,7 +78,7 @@ class ArtworkLoader(context: Context) {
     // This client owns its dispatcher and pool; cancelling artwork never cancels video or catalog
     // calls.
     private val http =
-        OkHttpClient.Builder()
+        HttpCompat.newBuilder()
             .connectTimeout(5, TimeUnit.SECONDS)
             .readTimeout(8, TimeUnit.SECONDS)
             .callTimeout(12, TimeUnit.SECONDS)

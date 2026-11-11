@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 /** Anonymous, read-only timed comments. No account session or write endpoint. */
 class TimedComments(
-    http: okhttp3.OkHttpClient = okhttp3.OkHttpClient.Builder().callTimeout(20, java.util.concurrent.TimeUnit.SECONDS).followRedirects(false).build(),
+    http: okhttp3.OkHttpClient = HttpCompat.newBuilder().callTimeout(20, java.util.concurrent.TimeUnit.SECONDS).followRedirects(false).build(),
     playbackSession: PlaybackDeviceSession = PlaybackDeviceSession.shared,
 ) {
     private val transport = CommentTransport(playbackSession, http)

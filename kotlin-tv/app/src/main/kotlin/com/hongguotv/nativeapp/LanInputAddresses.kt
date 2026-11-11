@@ -24,7 +24,8 @@ internal object LanInputAddresses {
     fun find(connectivity: ConnectivityManager): List<LanInputAddress> {
         val active = if (android.os.Build.VERSION.SDK_INT >= 23) connectivity.activeNetwork else null
         val rows =
-            connectivity.allNetworks
+            if (android.os.Build.VERSION.SDK_INT < 21) emptyList()
+            else connectivity.allNetworks
                 .sortedBy { if (it == active) 0 else 1 }
                 .flatMap { network ->
                     val caps =

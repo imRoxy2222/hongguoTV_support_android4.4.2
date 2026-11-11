@@ -123,7 +123,7 @@ class AccountController(private val activity: Activity, private val play: (Cloud
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newSingleThreadExecutor()
     private val http =
-        okhttp3.OkHttpClient.Builder()
+        HttpCompat.newBuilder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS)
@@ -133,7 +133,7 @@ class AccountController(private val activity: Activity, private val play: (Cloud
     private val client = CloudAccountClient(http)
     // passport 短信登录沿用默认重定向策略（与网页登录的 no-redirect 客户端分开）。
     private val phoneHttp =
-        okhttp3.OkHttpClient.Builder()
+        HttpCompat.newBuilder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .callTimeout(30, TimeUnit.SECONDS)

@@ -66,7 +66,7 @@ internal interface FeedBackend : Closeable {
 internal class PublicFeedBackend(
     private val quality: Int,
     private val http: OkHttpClient =
-        OkHttpClient.Builder()
+        HttpCompat.newBuilder()
             .connectionPool(feedPool)
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)

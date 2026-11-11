@@ -5,10 +5,9 @@ import java.io.IOException
 import java.io.InterruptedIOException
 import java.util.UUID
 import okhttp3.CookieJar
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
+import com.hongguotv.core.compat.*
 
 class PlaybackDeviceRegistrationException(cause: Throwable? = null) :
     IOException("播放设备注册失败，请稍后重试", cause)

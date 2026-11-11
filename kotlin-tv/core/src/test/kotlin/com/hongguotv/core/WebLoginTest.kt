@@ -1,9 +1,9 @@
 package com.hongguotv.core
 
 import okhttp3.*
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 class WebLoginTest {
     private fun http(respond: (Request, Response.Builder) -> String) =

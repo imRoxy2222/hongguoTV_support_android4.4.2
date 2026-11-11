@@ -2,12 +2,11 @@
 package com.hongguotv.nativeapp
 
 import android.content.Context
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
+import com.hongguotv.core.compat.*
 
 /** 伴机交互失败：message 为用户可读文案，经 playbackFailureSummary 原样透出。 */
 internal class RelayException(message: String) : java.io.IOException(message)

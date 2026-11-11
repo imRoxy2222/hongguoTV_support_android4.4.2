@@ -8,9 +8,9 @@ import java.util.concurrent.atomic.AtomicInteger
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 class PlaybackDeviceSessionTest {
     private val model =

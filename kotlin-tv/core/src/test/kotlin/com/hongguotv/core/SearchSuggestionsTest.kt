@@ -3,9 +3,9 @@ package com.hongguotv.core
 
 import java.io.IOException
 import okhttp3.*
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 class SearchSuggestionsTest {
     @Test

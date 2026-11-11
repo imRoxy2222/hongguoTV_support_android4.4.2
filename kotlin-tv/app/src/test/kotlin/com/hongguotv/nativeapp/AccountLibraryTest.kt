@@ -8,7 +8,6 @@ import com.hongguotv.core.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.TimeUnit
 import okhttp3.*
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,6 +18,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowAlertDialog
 import org.robolectric.shadows.ShadowLooper
+import com.hongguotv.core.compat.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [21, 26], qualifiers = "w960dp-h540dp-land-mdpi")

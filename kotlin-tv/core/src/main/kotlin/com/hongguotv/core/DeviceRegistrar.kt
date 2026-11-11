@@ -3,15 +3,14 @@
 // and the registration half of rust/src/device/crypto.rs; GPL-3.0-only.
 package com.hongguotv.core
 
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.security.SecureRandom
 import java.util.UUID
 import java.util.zip.GZIPOutputStream
+import com.hongguotv.core.compat.*
 
 /** One upstream device issued by the log.snssdk.com registration endpoint. */
 data class PlayerDevice(

@@ -3,12 +3,12 @@ package com.hongguotv.core
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
 import java.io.IOException
+import com.hongguotv.core.compat.*
 
 class PlaybackModelsTest {
     private fun row(height: Int=720, codec: String="h264", url: String="https://example.com/video") = JSONObject().put("vheight",height).put("codec_type",codec).put("main_url",url)

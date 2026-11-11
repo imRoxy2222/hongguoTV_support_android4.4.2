@@ -2,7 +2,6 @@ package com.hongguotv.nativeapp
 
 import android.app.Activity
 import com.hongguotv.core.*
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -11,6 +10,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
+import com.hongguotv.core.compat.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26], qualifiers = "land")

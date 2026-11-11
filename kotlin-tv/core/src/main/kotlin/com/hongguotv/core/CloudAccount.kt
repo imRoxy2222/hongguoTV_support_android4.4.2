@@ -5,12 +5,11 @@ package com.hongguotv.core
 // 账户云端数据访问：封装账户相关请求与返回数据。
 
 import java.io.IOException
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.hongguotv.core.compat.*
 
 data class AccountCredentials(
     val cookie: String,

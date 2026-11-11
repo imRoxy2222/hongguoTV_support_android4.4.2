@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package com.hongguotv.core
 
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 class TimedCommentsTest {
     @Test

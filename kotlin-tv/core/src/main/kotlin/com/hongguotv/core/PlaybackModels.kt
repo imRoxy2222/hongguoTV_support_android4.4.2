@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package com.hongguotv.core
 
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import com.hongguotv.core.compat.*
 
 /** A deterministic source failure, unlike a transient transport failure. */
 class PlaybackSourceException(val reason: Reason, val upstreamCode: Int? = null): IOException(

@@ -4,13 +4,12 @@ package com.hongguotv.nativeapp
 import androidx.media3.datasource.DataSpec
 import com.hongguotv.core.*
 import okhttp3.*
-import okhttp3.ResponseBody.Companion.toResponseBody
-import okio.buffer
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import com.hongguotv.core.compat.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26])
@@ -134,7 +133,7 @@ class VideoStartupCacheTest {
 
                             override fun contentLength() = (end - range[0] + 1).toLong()
 
-                            private val buffered = source.buffer()
+                            private val buffered = okio.Okio.buffer(source)
 
                             override fun source() = buffered
                         }

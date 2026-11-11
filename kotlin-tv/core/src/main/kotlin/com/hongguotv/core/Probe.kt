@@ -1,8 +1,7 @@
 package com.hongguotv.core
 
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.RequestBody.Companion.toRequestBody
+import com.hongguotv.core.compat.*
 
 fun main(args: Array<String>) {
     val repository = ContentRepository()

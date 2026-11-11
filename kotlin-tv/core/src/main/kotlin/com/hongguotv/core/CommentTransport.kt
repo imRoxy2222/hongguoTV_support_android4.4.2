@@ -4,11 +4,10 @@ package com.hongguotv.core
 import java.io.IOException
 import java.net.URLEncoder
 import java.util.concurrent.TimeUnit
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import com.hongguotv.core.compat.*
 
 /** Shared anonymous transport for read-only comment lists. Never accepts account credentials. */
 internal class CommentTransport(

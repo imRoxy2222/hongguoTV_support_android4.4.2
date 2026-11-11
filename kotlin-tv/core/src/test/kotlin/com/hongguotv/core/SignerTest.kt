@@ -1,9 +1,9 @@
 package com.hongguotv.core
 
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONArray
 import org.junit.Assert.*
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 class SignerTest {
     @Test

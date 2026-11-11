@@ -5,7 +5,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.After
@@ -13,6 +12,7 @@ import org.junit.Assert.*
 import org.junit.Before
 import org.junit.Test
 import java.io.IOException
+import com.hongguotv.core.compat.*
 
 /** Covers the registered-device stream resolution path ported from fqapp. */
 class ContentRepositoryPlayerTest {

@@ -6,12 +6,12 @@ import okhttp3.OkHttpClient
 import okhttp3.Protocol
 import okhttp3.Request
 import okhttp3.Response
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 /**
  * App passport 短信登录（`/passport/mobile/` 三个端点）：网页端已要求滑块，这条通道仍未要求；

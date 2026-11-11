@@ -9,7 +9,6 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
 import okhttp3.*
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -21,6 +20,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 import org.robolectric.shadows.ShadowLooper
+import com.hongguotv.core.compat.*
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [26], qualifiers = "w960dp-h540dp-land-mdpi")

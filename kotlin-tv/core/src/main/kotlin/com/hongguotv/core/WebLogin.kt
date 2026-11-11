@@ -3,8 +3,8 @@ package com.hongguotv.core
 
 import java.io.IOException
 import okhttp3.*
-import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.json.JSONObject
+import com.hongguotv.core.compat.*
 
 /** One official website login session; its CSRF cookies survive send/verify/poll. */
 class WebLogin(http: OkHttpClient) {

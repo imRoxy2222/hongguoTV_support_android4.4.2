@@ -3,10 +3,10 @@ package com.hongguotv.core
 import java.io.IOException
 import java.util.zip.GZIPInputStream
 import okhttp3.*
-import okhttp3.ResponseBody.Companion.toResponseBody
 import org.json.JSONObject
 import org.junit.Assert.*
 import org.junit.Test
+import com.hongguotv.core.compat.*
 
 class RelatedWorksTest {
     private val data =

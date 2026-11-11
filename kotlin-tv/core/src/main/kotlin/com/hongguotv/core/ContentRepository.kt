@@ -11,13 +11,11 @@ import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.ConnectionPool
 import okhttp3.HttpUrl
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.hongguotv.core.compat.*
 
 /** 站点 CDN 在重定向时下发 ttwid 并拦截无 Cookie 的后续请求，内存 Cookie 罐使其自动流转。 */
 internal class MemoryCookies : CookieJar {

@@ -2,11 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-only
 package com.hongguotv.core
 
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import com.hongguotv.core.compat.*
 
 /**
  * 手机号 + 验证码登录（大陆与境外号码都收）。

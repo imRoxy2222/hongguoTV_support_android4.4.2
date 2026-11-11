@@ -4,13 +4,11 @@ package com.hongguotv.core
 // 推荐流接口适配：处理推荐请求、分页游标和内容结果。
 
 import java.io.IOException
-import okhttp3.HttpUrl.Companion.toHttpUrl
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
+import com.hongguotv.core.compat.*
 
 /** Pagination cursor; only bounded, account/source-scoped snapshots are used for cold starts. */
 class RecommendationCursor

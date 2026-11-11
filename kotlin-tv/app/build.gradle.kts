@@ -32,7 +32,7 @@ android {
         unitTests.all {
             it.systemProperty(
                 "robolectric.dependency.repo.url",
-                "https://repo.maven.apache.org/maven2",
+                "https://maven.aliyun.com/repository/public",
             )
         }
     }

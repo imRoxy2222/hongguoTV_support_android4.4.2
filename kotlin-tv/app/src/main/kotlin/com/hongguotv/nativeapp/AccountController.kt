@@ -1082,7 +1082,7 @@ class AccountController(private val activity: Activity, private val play: (Cloud
         pending = null
         lastProgress = null
         draining = false
-        http.dispatcher.cancelAll()
+        http.dispatcher().cancelAll()
         status = "已退出账号，自动同步已停止"
         changed()
         worker.execute {
@@ -1140,12 +1140,12 @@ class AccountController(private val activity: Activity, private val play: (Cloud
         generation++
         pending = null
         dialog?.dismiss()
-        http.dispatcher.cancelAll()
+        http.dispatcher().cancelAll()
         worker.execute {
             if (account != null && final != null)
                 runCatching { client.upload(account, final.first, final.second) }
-            http.connectionPool.evictAll()
-            http.dispatcher.executorService.shutdown()
+            http.connectionPool().evictAll()
+            http.dispatcher().executorService()?.shutdown()
         }
         worker.shutdown()
     }

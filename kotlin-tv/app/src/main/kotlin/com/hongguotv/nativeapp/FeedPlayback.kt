@@ -286,9 +286,9 @@ internal class PublicFeedBackend(
         // Idle TLS socket closure may write close_notify. Never do it on Android's UI thread.
         Thread(
                 {
-                    http.dispatcher.cancelAll()
-                    if (http.connectionPool !== feedPool) http.connectionPool.evictAll()
-                    http.dispatcher.executorService.shutdown()
+                    http.dispatcher().cancelAll()
+                    if (http.connectionPool() !== feedPool) http.connectionPool().evictAll()
+                    http.dispatcher().executorService()?.shutdown()
                 },
                 "hongguotv-feed-cleanup",
             )

@@ -3321,9 +3321,9 @@ class MainActivity : Activity() {
         if (http == null) return
         // Closing an idle TLS connection can write close_notify; keep it off the UI thread.
         networkCleanup.execute {
-            http.dispatcher.cancelAll()
-            http.connectionPool.evictAll()
-            http.dispatcher.executorService.shutdown()
+            http.dispatcher().cancelAll()
+            http.connectionPool().evictAll()
+            http.dispatcher().executorService()?.shutdown()
         }
     }
 
@@ -5032,9 +5032,9 @@ class MainActivity : Activity() {
         networkCleanup.shutdown()
         Thread(
                 {
-                    repository.http.dispatcher.cancelAll()
-                    repository.http.connectionPool.evictAll()
-                    repository.http.dispatcher.executorService.shutdown()
+                    repository.http.dispatcher().cancelAll()
+                    repository.http.connectionPool().evictAll()
+                    repository.http.dispatcher().executorService()?.shutdown()
                 },
                 "hongguotv-network-cleanup",
             )

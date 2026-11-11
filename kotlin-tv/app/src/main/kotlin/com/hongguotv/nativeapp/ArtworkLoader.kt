@@ -280,9 +280,9 @@ class ArtworkLoader(context: Context) {
         // TLS socket pool disposal can block and must not happen on the UI thread.
         Thread(
                 {
-                    http.dispatcher.cancelAll()
-                    http.connectionPool.evictAll()
-                    http.dispatcher.executorService.shutdown()
+                    http.dispatcher().cancelAll()
+                    http.connectionPool().evictAll()
+                    http.dispatcher().executorService()?.shutdown()
                 },
                 "hongguotv-artwork-cleanup",
             )
@@ -362,7 +362,7 @@ class ArtworkLoader(context: Context) {
                         return null
                     }
                     call.execute().use { response ->
-                        val body = response.body ?: return null
+                        val body = response.body() ?: return null
                         if (!response.isSuccessful || body.contentLength() > MAX_BYTES) return null
                         val out = ByteArrayOutputStream()
                         val buffer = ByteArray(8192)

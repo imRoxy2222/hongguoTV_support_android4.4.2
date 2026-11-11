@@ -77,11 +77,11 @@ internal class RelayClient(
                 if (!response.isSuccessful) {
                     android.util.Log.w(
                         "HongguoTV",
-                        "relay $method $path → HTTP ${response.code}",
+                        "relay $method $path → HTTP ${response.code()}",
                     )
                     return null
                 }
-                val text = response.body?.string() ?: return null
+                val text = response.body()?.string() ?: return null
                 if (text.isBlank()) null else JSONObject(text)
             }
         } catch (problem: Exception) {
@@ -106,10 +106,10 @@ internal class RelayClient(
         fun post(): Pair<Int, JSONObject?> =
             try {
                 longCall.newCall(request("/session", body = payload)).execute().use { response ->
-                    val text = response.body?.string()
+                    val text = response.body()?.string()
                     val parsed =
                         text?.takeIf { it.isNotBlank() }?.let { runCatching { JSONObject(it) }.getOrNull() }
-                    response.code to parsed
+                    response.code() to parsed
                 }
             } catch (problem: Exception) {
                 android.util.Log.w(

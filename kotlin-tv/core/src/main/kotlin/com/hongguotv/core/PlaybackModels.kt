@@ -43,7 +43,7 @@ internal object PlaybackModels {
         return url(value)?.takeIf { it.startsWith("https://") }
     }
     private fun url(raw: String): String? = cleanUrl(raw).trim().toHttpUrlOrNull()?.takeIf {
-        it.username.isEmpty() && it.password.isEmpty()
+        it.username().isEmpty() && it.password().isEmpty()
     }?.toString()
 
     fun candidates(model: JSONObject): List<StreamInfo> = renditions(model).map {

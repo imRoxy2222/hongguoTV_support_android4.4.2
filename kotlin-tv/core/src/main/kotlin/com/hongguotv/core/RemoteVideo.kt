@@ -44,7 +44,7 @@ class RemoteVideo(private val http: OkHttpClient, val info: StreamInfo) : Closea
     }
 
     private fun rangeSize(response: Response, start: Long, end: Long): Pair<Int, Long> {
-        if (response.code != 206) throw IOException("视频服务器不支持分段读取（HTTP ${response.code}）")
+        if (response.code() != 206) throw IOException("视频服务器不支持分段读取（HTTP ${response.code()}）")
         val match =
             Regex("bytes (\\d+)-(\\d+)/(\\d+)")
                 .matchEntire(response.header("Content-Range").orEmpty())
@@ -63,7 +63,7 @@ class RemoteVideo(private val http: OkHttpClient, val info: StreamInfo) : Closea
         try {
             return RequestScope.execute(call) { response ->
                 val (n, full) = rangeSize(response, start, end)
-                val body = response.body ?: throw IOException("视频分段为空")
+                val body = response.body() ?: throw IOException("视频分段为空")
                 val bytes = body.source().readByteArray(n.toLong())
                 Range(bytes, full)
             }
@@ -81,7 +81,7 @@ class RemoteVideo(private val http: OkHttpClient, val info: StreamInfo) : Closea
         try {
             return RequestScope.execute(call) { response ->
                 val (size, full) = rangeSize(response, 0, 256 * 1024 - 1)
-                val source = (response.body ?: throw IOException("视频分段为空")).source()
+                val source = (response.body() ?: throw IOException("视频分段为空")).source()
                 val first = source.readByteArray(minOf(initialBytes, size).toLong())
                 val needed = minOf(MediaCrypto.headerEnd(first, full), size)
                 val bytes =
@@ -109,7 +109,7 @@ class RemoteVideo(private val http: OkHttpClient, val info: StreamInfo) : Closea
             val opened = call.execute()
             response = opened
             val (size, _) = rangeSize(opened, start, end)
-            val input = (opened.body ?: throw IOException("视频分段为空")).byteStream()
+            val input = (opened.body() ?: throw IOException("视频分段为空")).byteStream()
             return object : InputStream() {
                 private var position = start
                 private var remaining = size

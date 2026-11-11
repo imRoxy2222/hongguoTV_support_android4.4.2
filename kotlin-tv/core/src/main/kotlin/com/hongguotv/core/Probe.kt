@@ -40,8 +40,8 @@ fun main(args: Array<String>) {
                 )
             }
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -66,8 +66,8 @@ fun main(args: Array<String>) {
                 "officialFeed=true; first=${first.items.size}; second=${second.items.size}; new=$new; firstMore=${first.hasMore}; secondMore=${second.hasMore}; refreshed=${refreshed.items.size}; authenticated=false"
             )
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -87,8 +87,8 @@ fun main(args: Array<String>) {
                 )
             }
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -102,8 +102,8 @@ fun main(args: Array<String>) {
                 )
             }
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -204,10 +204,10 @@ fun main(args: Array<String>) {
             }
             println("issue38 windowSummary; cycles=$cycle; empties=$empties")
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -279,10 +279,10 @@ fun main(args: Array<String>) {
             )
             println("tab-matrix winners=$winners")
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -320,10 +320,10 @@ fun main(args: Array<String>) {
                 "tab-fallback freshIdentity; episode=${targets.first()}; ${tabProbe(repo.http, sessionB, targets.first(), tabBaseParams())}"
             )
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -346,10 +346,10 @@ fun main(args: Array<String>) {
                 println("tab-episodes episode=$episode; ${tabProbe(repo.http, session, episode, tabBaseParams())}")
             }
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -374,8 +374,8 @@ fun main(args: Array<String>) {
         } catch (e: Exception) {
             println("ladder episode=$episodeId; error=${e.message?.take(150)}")
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -425,10 +425,10 @@ fun main(args: Array<String>) {
                 Thread.sleep(2000)
             }
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -452,10 +452,10 @@ fun main(args: Array<String>) {
                 }
             }
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -485,10 +485,10 @@ fun main(args: Array<String>) {
                 println("tab-ua ua=$label; episode=$episode; ${tabProbe(repo.http, session, episode, tabBaseParams(), ua)}")
             }
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -574,8 +574,8 @@ fun main(args: Array<String>) {
                 "soak summary; minutes=$minutes; cycles=$cycle; probes=$probes; empty=$empties; rate=$rate; clusters=$clusters; $spanText"
             )
         } finally {
-            repo.http.connectionPool.evictAll()
-            repo.http.dispatcher.executorService.shutdown()
+            repo.http.connectionPool().evictAll()
+            repo.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -606,8 +606,8 @@ fun main(args: Array<String>) {
         } catch (error: Exception) {
             println("loginTestFailed=${error.message?.take(180)}")
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -617,8 +617,8 @@ fun main(args: Array<String>) {
             check(registered != null) { "Account device registration rejected" }
             println("accountDeviceRegistered=true; credentialsRequested=false; smsSent=false")
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -633,8 +633,8 @@ fun main(args: Array<String>) {
                 if (!result.hasMore) break
             }
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -662,8 +662,8 @@ fun main(args: Array<String>) {
                 )
             }
         } finally {
-            repository.http.connectionPool.evictAll()
-            repository.http.dispatcher.executorService.shutdown()
+            repository.http.connectionPool().evictAll()
+            repository.http.dispatcher().executorService()?.shutdown()
         }
         return
     }
@@ -700,8 +700,8 @@ fun main(args: Array<String>) {
         )
         if (args.contains("--save")) java.io.File("/tmp/hongguo-kotlin-first.mp4").writeBytes(first)
     }
-    repository.http.connectionPool.evictAll()
-    repository.http.dispatcher.executorService.shutdown()
+    repository.http.connectionPool().evictAll()
+    repository.http.dispatcher().executorService()?.shutdown()
 }
 
 private const val PLAYER_HOST_PRIMARY = "api5-normal-sinfonlineb.fqnovel.com"
@@ -758,8 +758,8 @@ private fun playerProbe(
                     format.timeZone = java.util.TimeZone.getTimeZone("GMT")
                     format.parse(it)?.let { parsed -> (System.currentTimeMillis() - parsed.time) / 1000 }
                 }
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) return@execute "http=${response.code}; body=EMPTY; skewSec=$skew"
+            val body = response.body()?.string().orEmpty()
+            if (body.isBlank()) return@execute "http=${response.code()}; body=EMPTY; skewSec=$skew"
             val json = org.json.JSONObject(body)
             val code = json.optInt("Code", json.optInt("code", 0))
             val data = json.optJSONObject("data")
@@ -776,7 +776,7 @@ private fun playerProbe(
                     val meta = entry.optJSONObject("video_meta") ?: return@mapNotNull null
                     "${meta.optString("codec_type")}/${meta.optString("definition")}/${meta.optInt("vwidth")}x${meta.optInt("vheight")}"
                 }
-            "http=${response.code}; code=$code; rows=${data?.length() ?: 0}; renditions=${renditions.joinToString(",")}; skewSec=$skew"
+            "http=${response.code()}; code=$code; rows=${data?.length() ?: 0}; renditions=${renditions.joinToString(",")}; skewSec=$skew"
         }
     } catch (problem: Exception) {
         "error=${problem.javaClass.simpleName}: ${problem.message?.take(80)}"
@@ -810,19 +810,19 @@ private fun tabProbe(
             .build()
     return try {
         RequestScope.execute(http.newCall(request)) { response ->
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) return@execute "http=${response.code}; body=EMPTY"
+            val body = response.body()?.string().orEmpty()
+            if (body.isBlank()) return@execute "http=${response.code()}; body=EMPTY"
             val json = runCatching { org.json.JSONObject(body) }.getOrNull()
-                ?: return@execute "http=${response.code}; body=NOT_JSON(${body.length})"
+                ?: return@execute "http=${response.code()}; body=NOT_JSON(${body.length})"
             val code = json.optInt("code", json.optInt("Code", -1))
             if (code != 0)
-                return@execute "http=${response.code}; code=$code; message=${json.optString("message").take(50)}"
+                return@execute "http=${response.code()}; code=$code; message=${json.optString("message").take(50)}"
             val data = json.optJSONObject("data")
             val rows = data?.optJSONObject("video_model_data") ?: data
             val row =
                 rows?.optJSONObject(episodeId)
                     ?: rows?.keys()?.asSequence()?.mapNotNull { rows.optJSONObject(it) }?.firstOrNull()
-                    ?: return@execute "http=${response.code}; code=$code; row=MISSING"
+                    ?: return@execute "http=${response.code()}; code=$code; row=MISSING"
             val model =
                 row.opt("video_model")?.let { value ->
                     runCatching {
@@ -830,7 +830,7 @@ private fun tabProbe(
                     }
                         .getOrNull()
                 }
-                    ?: return@execute "http=${response.code}; code=$code; model=MISSING"
+                    ?: return@execute "http=${response.code()}; code=$code; model=MISSING"
             val tiers =
                 model.optJSONArray("video_list")?.objects().orEmpty().mapNotNull { entry ->
                     val meta = entry.optJSONObject("video_meta") ?: return@mapNotNull null
@@ -839,7 +839,7 @@ private fun tabProbe(
                     val h = meta.optInt("vheight")
                     "${codec}/${meta.optString("definition")}/${w}x${h}${if (maxOf(w, h) in 1..1088) "*" else ""}"
                 }
-            "http=${response.code}; code=$code; renditions=${tiers.joinToString(",")}"
+            "http=${response.code()}; code=$code; renditions=${tiers.joinToString(",")}"
         }
     } catch (problem: Exception) {
         "error=${problem.javaClass.simpleName}: ${problem.message?.take(80)}"
@@ -971,19 +971,19 @@ private fun signedProbe(
         }
     return try {
         RequestScope.execute(http.newCall(request)) { response ->
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) return@execute "http=${response.code}; body=EMPTY"
+            val body = response.body()?.string().orEmpty()
+            if (body.isBlank()) return@execute "http=${response.code()}; body=EMPTY"
             val json = runCatching { org.json.JSONObject(body) }.getOrNull()
-                ?: return@execute "http=${response.code}; body=NOT_JSON(${body.length})"
+                ?: return@execute "http=${response.code()}; body=NOT_JSON(${body.length})"
             val code = json.optInt("code", json.optInt("Code", -1))
             if (code != 0)
-                return@execute "http=${response.code}; code=$code; message=${json.optString("message").take(50)}"
+                return@execute "http=${response.code()}; code=$code; message=${json.optString("message").take(50)}"
             val data = json.optJSONObject("data")
             val rows = data?.optJSONObject("video_model_data") ?: data
             val row =
                 rows?.optJSONObject(episodeId)
                     ?: rows?.keys()?.asSequence()?.mapNotNull { rows.optJSONObject(it) }?.firstOrNull()
-                    ?: return@execute "http=${response.code}; code=$code; row=MISSING"
+                    ?: return@execute "http=${response.code()}; code=$code; row=MISSING"
             val model =
                 row.opt("video_model")?.let { value ->
                     runCatching {
@@ -995,7 +995,7 @@ private fun signedProbe(
                     val meta = entry.optJSONObject("video_meta") ?: return@mapNotNull null
                     "${meta.optString("codec_type")}/${meta.optString("definition")}/${meta.optInt("vwidth")}x${meta.optInt("vheight")}"
                 }
-            "http=${response.code}; renditions=${renditions.joinToString(",")}; bytes=${body.length}"
+            "http=${response.code()}; renditions=${renditions.joinToString(",")}; bytes=${body.length}"
         }
     } catch (problem: Exception) {
         "error=${problem.javaClass.simpleName}: ${problem.message?.take(80)}"
@@ -1026,7 +1026,7 @@ private fun tabModelRaw(
             .build()
     return runCatching {
         RequestScope.execute(http.newCall(request)) { response ->
-            val root = runCatching { org.json.JSONObject(response.body?.string().orEmpty()) }.getOrNull()
+            val root = runCatching { org.json.JSONObject(response.body()?.string().orEmpty()) }.getOrNull()
                 ?: return@execute null
             if (root.optInt("code", root.optInt("Code", -1)) != 0) return@execute null
             val data = root.optJSONObject("data")
@@ -1069,14 +1069,14 @@ private fun legacyProbe(http: OkHttpClient, url: String): String {
             .build()
     return try {
         RequestScope.execute(http.newCall(request)) { response ->
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) return@execute "http=${response.code}; body=EMPTY"
+            val body = response.body()?.string().orEmpty()
+            if (body.isBlank()) return@execute "http=${response.code()}; body=EMPTY"
             val json = runCatching { org.json.JSONObject(body) }.getOrNull()
-                ?: return@execute "http=${response.code}; body=NOT_JSON(${body.length})"
+                ?: return@execute "http=${response.code()}; body=NOT_JSON(${body.length})"
             val code = json.optInt("code", json.optInt("Code", 0))
             val info = json.optJSONObject("video_info")?.optJSONObject("data")
             val videoList = info?.optJSONObject("video_list")
-                ?: return@execute "http=${response.code}; code=$code; video_list=MISSING"
+                ?: return@execute "http=${response.code()}; code=$code; video_list=MISSING"
             val tiers =
                 videoList.keys().asSequence().mapNotNull { key ->
                     val row = videoList.optJSONObject(key) ?: return@mapNotNull null
@@ -1085,7 +1085,7 @@ private fun legacyProbe(http: OkHttpClient, url: String): String {
                     val h = row.optInt("vheight", row.optInt("height", 0))
                     "${codec}/${row.optString("quality_desc").ifEmpty { row.optString("definition") }}/${w}x${h}${if (maxOf(w, h) in 1..1088) "*" else ""}"
                 }
-            "http=${response.code}; code=$code; renditions=${tiers.joinToString(",")}"
+            "http=${response.code()}; code=$code; renditions=${tiers.joinToString(",")}"
         }
     } catch (problem: Exception) {
         "error=${problem.javaClass.simpleName}: ${problem.message?.take(80)}"
@@ -1118,13 +1118,13 @@ private fun novelBatchProbe(
             .build()
     return try {
         RequestScope.execute(http.newCall(request)) { response ->
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) return@execute "http=${response.code}; body=EMPTY"
+            val body = response.body()?.string().orEmpty()
+            if (body.isBlank()) return@execute "http=${response.code()}; body=EMPTY"
             val json = runCatching { org.json.JSONObject(body) }.getOrNull()
-                ?: return@execute "http=${response.code}; body=NOT_JSON(${body.length})"
+                ?: return@execute "http=${response.code()}; body=NOT_JSON(${body.length})"
             val code = json.optInt("code", json.optInt("Code", -1))
             if (code != 0)
-                return@execute "http=${response.code}; code=$code; message=${json.optString("message").take(50)}"
+                return@execute "http=${response.code()}; code=$code; message=${json.optString("message").take(50)}"
             val data = json.optJSONObject("data")
             val row = data?.optJSONObject(episodes.first())
             val model =
@@ -1134,7 +1134,7 @@ private fun novelBatchProbe(
                     }
                         .getOrNull()
                 }
-                    ?: return@execute "http=${response.code}; code=$code; model=MISSING"
+                    ?: return@execute "http=${response.code()}; code=$code; model=MISSING"
             val tiers =
                 model.optJSONArray("video_list")?.objects().orEmpty().mapNotNull { entry ->
                     val meta = entry.optJSONObject("video_meta") ?: return@mapNotNull null
@@ -1143,7 +1143,7 @@ private fun novelBatchProbe(
                     val h = meta.optInt("vheight")
                     "${codec}/${meta.optString("definition")}/${w}x${h}${if (maxOf(w, h) in 1..1088) "*" else ""}"
                 }
-            "http=${response.code}; code=$code; renditions=${tiers.joinToString(",")}"
+            "http=${response.code()}; code=$code; renditions=${tiers.joinToString(",")}"
         }
     } catch (problem: Exception) {
         "error=${problem.javaClass.simpleName}: ${problem.message?.take(80)}"
@@ -1176,11 +1176,11 @@ private fun tabOldPathProbe(
             .build()
     return try {
         RequestScope.execute(http.newCall(request)) { response ->
-            val body = response.body?.string().orEmpty()
-            if (body.isBlank()) return@execute "http=${response.code}; body=EMPTY"
+            val body = response.body()?.string().orEmpty()
+            if (body.isBlank()) return@execute "http=${response.code()}; body=EMPTY"
             val json = runCatching { org.json.JSONObject(body) }.getOrNull()
             val code = json?.optInt("code", json.optInt("Code", -1)) ?: -1
-            "http=${response.code}; body=${body.length}B; code=$code"
+            "http=${response.code()}; body=${body.length}B; code=$code"
         }
     } catch (problem: Exception) {
         "error=${problem.javaClass.simpleName}: ${problem.message?.take(80)}"

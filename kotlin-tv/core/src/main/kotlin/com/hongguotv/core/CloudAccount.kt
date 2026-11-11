@@ -71,8 +71,8 @@ internal class EmptyAccountResponseException(val detail: String) :
     IOException("账号接口返回空响应，请稍后重试")
 
 internal fun cloudResponse(response: okhttp3.Response): String {
-    if (!response.isSuccessful) throw IOException("账号请求失败（HTTP ${response.code}）")
-    val body = response.body ?: throw IOException("账号接口响应为空")
+    if (!response.isSuccessful) throw IOException("账号请求失败（HTTP ${response.code()}）")
+    val body = response.body() ?: throw IOException("账号接口响应为空")
     val limit = 2 * 1024 * 1024L
     if (body.contentLength() > limit) throw IOException("账号接口响应过大")
     val out = java.io.ByteArrayOutputStream()
@@ -87,8 +87,8 @@ internal fun cloudResponse(response: okhttp3.Response): String {
     if (bytes.size > limit) throw IOException("账号接口响应过大")
     val text = String(bytes, Charsets.UTF_8)
     if (text.isBlank()) {
-        val protocol = if (response.protocol == okhttp3.Protocol.HTTP_2) "h2" else "h1"
-        throw EmptyAccountResponseException("HTTP ${response.code}/${bytes.size}B/$protocol")
+        val protocol = if (response.protocol() == okhttp3.Protocol.HTTP_2) "h2" else "h1"
+        throw EmptyAccountResponseException("HTTP ${response.code()}/${bytes.size}B/$protocol")
     }
     return text
 }

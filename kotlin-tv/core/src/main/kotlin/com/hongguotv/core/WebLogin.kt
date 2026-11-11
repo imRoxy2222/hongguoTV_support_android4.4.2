@@ -24,13 +24,13 @@ class WebLogin(http: OkHttpClient) {
 
     private fun execute(request: Request): Response {
         val matching =
-            cookies.filter { it.matches(request.url) && it.expiresAt > System.currentTimeMillis() }
+            cookies.filter { it.matches(request.url()) && it.expiresAt() > System.currentTimeMillis() }
         val scoped =
             request
                 .newBuilder()
                 .apply {
                     if (matching.isNotEmpty())
-                        header("Cookie", matching.joinToString("; ") { "${it.name}=${it.value}" })
+                        header("Cookie", matching.joinToString("; ") { "${it.name()}=${it.value()}" })
                 }
                 .build()
         val call = client.newCall(scoped)
@@ -41,11 +41,11 @@ class WebLogin(http: OkHttpClient) {
             } finally {
                 if (activeCall === call) activeCall = null
             }
-        for (cookie in Cookie.parseAll(request.url, response.headers)) {
+        for (cookie in Cookie.parseAll(request.url(), response.headers())) {
             cookies.removeAll {
-                it.name == cookie.name && it.domain == cookie.domain && it.path == cookie.path
+                it.name() == cookie.name() && it.domain() == cookie.domain() && it.path() == cookie.path()
             }
-            if (cookie.expiresAt > System.currentTimeMillis()) cookies += cookie
+            if (cookie.expiresAt() > System.currentTimeMillis()) cookies += cookie
         }
         return response
     }
@@ -79,8 +79,8 @@ class WebLogin(http: OkHttpClient) {
                 .header("Origin", BASE)
                 .header("Accept", "application/json, text/javascript")
         cookies
-            .firstOrNull { it.name == "passport_csrf_token" && it.matches(url.build()) }
-            ?.let { request.header("x-tt-passport-csrf-token", it.value) }
+            .firstOrNull { it.name() == "passport_csrf_token" && it.matches(url.build()) }
+            ?.let { request.header("x-tt-passport-csrf-token", it.value()) }
         if (data != null)
             request.post(FormBody.Builder().apply { data.forEach { (k, v) -> add(k, v) } }.build())
         return execute(request.build()).use { JSONObject(cloudResponse(it)) }
@@ -137,7 +137,7 @@ class WebLogin(http: OkHttpClient) {
     private fun finishRedirect(value: String) {
         var url = BASE.toHttpUrl().resolve(value) ?: throw IOException("登录确认地址无效")
         repeat(5) {
-            if (url.scheme != "https" || url.host != "hongguoduanju.com")
+            if (url.scheme() != "https" || url.host() != "hongguoduanju.com")
                 throw IOException("登录确认跳转到不支持的站点")
             val next =
                 execute(
@@ -152,7 +152,7 @@ class WebLogin(http: OkHttpClient) {
                             response.header("Location")?.let { url.resolve(it) }
                         else {
                             if (!response.isSuccessful)
-                                throw IOException("登录确认失败（HTTP ${response.code}）")
+                                throw IOException("登录确认失败（HTTP ${response.code()}）")
                             null
                         }
                     }
@@ -163,7 +163,7 @@ class WebLogin(http: OkHttpClient) {
     }
 
     fun send(number: String): PhoneLogin.Sent {
-        if (cookies.none { it.name == "passport_csrf_token" }) qr()
+        if (cookies.none { it.name() == "passport_csrf_token" }) qr()
         mobile = if (number.startsWith("+")) number else "+86 $number"
         val data =
             checked(
@@ -203,9 +203,9 @@ class WebLogin(http: OkHttpClient) {
 
     private fun hasSession() =
         cookies.any {
-            it.name in listOf("sessionid", "sessionid_ss") &&
+            it.name() in listOf("sessionid", "sessionid_ss") &&
                 it.matches(BASE.toHttpUrl()) &&
-                it.expiresAt > System.currentTimeMillis()
+                it.expiresAt() > System.currentTimeMillis()
         }
 
     fun credentials(): AccountCredentials {
@@ -214,9 +214,9 @@ class WebLogin(http: OkHttpClient) {
         return AccountCredentials(
             cookies
                 .filter {
-                    it.matches(BASE.toHttpUrl()) && it.expiresAt > System.currentTimeMillis()
+                    it.matches(BASE.toHttpUrl()) && it.expiresAt() > System.currentTimeMillis()
                 }
-                .joinToString("; ") { "${it.name}=${it.value}" }
+                .joinToString("; ") { "${it.name()}=${it.value()}" }
         )
     }
 

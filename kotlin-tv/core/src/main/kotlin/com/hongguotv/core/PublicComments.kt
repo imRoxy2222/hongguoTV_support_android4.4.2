@@ -43,8 +43,8 @@ class PublicComments(http: OkHttpClient) {
         val request = Request.Builder().url(url).header("User-Agent", "Mozilla/5.0").build()
         val html =
             RequestScope.execute(transport.newCall(request)) { response ->
-                if (!response.isSuccessful) throw IOException("公开评论读取失败（HTTP ${response.code}）")
-                val input = response.body?.byteStream() ?: throw IOException("公开评论为空")
+                if (!response.isSuccessful) throw IOException("公开评论读取失败（HTTP ${response.code()}）")
+                val input = response.body()?.byteStream() ?: throw IOException("公开评论为空")
                 val bytes = readCommentBytes(input, 8 * 1024 * 1024)
                 if (bytes.size > 8 * 1024 * 1024) throw IOException("公开评论页面过大")
                 String(bytes, Charsets.UTF_8)

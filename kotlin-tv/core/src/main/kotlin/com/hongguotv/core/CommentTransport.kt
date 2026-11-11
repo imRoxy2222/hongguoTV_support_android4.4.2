@@ -78,9 +78,9 @@ internal class CommentTransport(
             request.header("User-Agent", "com.phoenix.read/74332 (Linux; U; Android 16; zh_CN; 25053RT47C; Build/BP2A.250605.031.A3)")
         }
         return RequestScope.execute(http.newCall(request.build())) { response ->
-            if (!response.isSuccessful) throw IOException("评论读取失败（HTTP ${response.code}）")
+            if (!response.isSuccessful) throw IOException("评论读取失败（HTTP ${response.code()}）")
             val bytes =
-                response.body?.byteStream()?.let { readCommentBytes(it, 2 * 1024 * 1024) }
+                response.body()?.byteStream()?.let { readCommentBytes(it, 2 * 1024 * 1024) }
                     ?: throw IOException("评论响应为空")
             if (bytes.size > 2 * 1024 * 1024) throw IOException("评论响应过大")
             JSONObject(String(bytes, Charsets.UTF_8))

@@ -188,10 +188,10 @@ internal class DeviceRegistrar(
 
     private fun execute(http: OkHttpClient, request: Request): ByteArray =
         RequestScope.execute(http.newCall(request)) { response ->
-            if (response.code == 401 || response.code == 403 || response.code == 10001 || response.code == 10002)
-                throw DeviceRejectedException("设备注册被拒绝（HTTP ${response.code}）")
-            if (!response.isSuccessful) throw java.io.IOException("设备注册请求失败（HTTP ${response.code}）")
-            val body = response.body ?: throw java.io.IOException("设备注册响应为空")
+            if (response.code() == 401 || response.code() == 403 || response.code() == 10001 || response.code() == 10002)
+                throw DeviceRejectedException("设备注册被拒绝（HTTP ${response.code()}）")
+            if (!response.isSuccessful) throw java.io.IOException("设备注册请求失败（HTTP ${response.code()}）")
+            val body = response.body() ?: throw java.io.IOException("设备注册响应为空")
             val input = body.byteStream(); val out = ByteArrayOutputStream(); val buffer = ByteArray(8192)
             while (out.size() <= 4 * 1024 * 1024) { val n = input.read(buffer); if (n < 0) break; out.write(buffer, 0, n) }
             if (out.size() > 4 * 1024 * 1024) throw java.io.IOException("设备注册响应过大")

@@ -25,7 +25,7 @@ internal class MemoryCookies : CookieJar {
     private fun List<Cookie>.replacedBy(cookies: List<Cookie>) =
         filter { kept ->
                 cookies.none {
-                    it.name == kept.name && it.domain == kept.domain && it.path == kept.path
+                    it.name() == kept.name() && it.domain() == kept.domain() && it.path() == kept.path()
                 }
             }
             .toMutableList()
@@ -33,12 +33,12 @@ internal class MemoryCookies : CookieJar {
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
         if (cookies.isEmpty()) return
-        store.compute(url.host) { _, kept -> kept.orEmpty().replacedBy(cookies) }
+        store.compute(url.host()) { _, kept -> kept.orEmpty().replacedBy(cookies) }
     }
 
     override fun loadForRequest(url: HttpUrl): List<Cookie> {
         val now = System.currentTimeMillis()
-        return store[url.host].orEmpty().filter { it.expiresAt > now }
+        return store[url.host()].orEmpty().filter { it.expiresAt() > now }
     }
 }
 
@@ -260,7 +260,7 @@ constructor(
                 .url(url)
                 .header("User-Agent", VendorConstants.VIDEO_UA)
                 .header("Accept-Language", "zh-CN,zh;q=0.9")
-        if (signed == null && request.build().url.host == "hongguoduanju.com") {
+        if (signed == null && request.build().url().host() == "hongguoduanju.com") {
             request.header("Referer", "$site/").header("User-Agent", "Mozilla/5.0")
         }
         signed?.headers?.forEach { (k, v) -> request.header(k, v) }
@@ -303,7 +303,7 @@ constructor(
                     original
                         .newBuilder()
                         .url(
-                            original.url
+                            original.url()
                                 .newBuilder()
                                 .setQueryParameter("_rticket", clock().toString())
                                 .build()
@@ -313,10 +313,10 @@ constructor(
             }
         return RequestScope.execute(client.newCall(next)) { response ->
             if (!response.isSuccessful) {
-                observed?.invoke(response.code, null, response.protocol)
-                throw ContentHttpException(response.code)
+                observed?.invoke(response.code(), null, response.protocol())
+                throw ContentHttpException(response.code())
             }
-            val body = response.body ?: throw IOException("内容响应为空")
+            val body = response.body() ?: throw IOException("内容响应为空")
             if (body.contentLength() > 16 * 1024 * 1024) throw IOException("内容响应过大")
             val input = body.byteStream()
             val out = java.io.ByteArrayOutputStream()
@@ -328,7 +328,7 @@ constructor(
             }
             val bytes = out.toByteArray()
             if (bytes.size > 16 * 1024 * 1024) throw IOException("内容响应过大")
-            observed?.invoke(response.code, bytes.size, response.protocol)
+            observed?.invoke(response.code(), bytes.size, response.protocol())
             val content = String(bytes, Charsets.UTF_8)
             if (rejectEmptyPlayback && content.isBlank()) throw EmptyPlaybackResponseException()
             content
@@ -342,7 +342,7 @@ constructor(
         stage: PlaybackRequestTrace.Stage,
     ): String {
         var recorded = false
-        val host = request.build().url.host
+        val host = request.build().url().host()
         return try {
             fetchOnce(request, client, refreshTicket = false, rejectEmptyPlayback = true) { code, bytes, protocol ->
                 recorded = true
@@ -1013,7 +1013,7 @@ constructor(
                             // GET 结构不符仍可换备用接口；POST 明确业务/格式错误不继续盲试。
                             if (!route.get && !PlayRetryPlan.temporary(error)) throw error
                         } finally {
-                            if (attempt > 0) client.connectionPool.evictAll()
+                            if (attempt > 0) client.connectionPool().evictAll()
                         }
                     }
                     if (current == null) {
@@ -1222,10 +1222,10 @@ constructor(
         signed?.headers?.forEach { (key,value) -> request.header(key,value) }
         signed?.body?.let { request.post(it.toRequestBody("application/json; charset=utf-8".toMediaType())) }
         return RequestScope.execute(http.newCall(request.build())) { response ->
-            if(response.code in 400..499 && response.code !in setOf(408,429))
-                throw PlaybackSourceException(PlaybackSourceException.Reason.HTTP_REJECTED,response.code)
-            if(!response.isSuccessful) throw IOException("播放请求失败（HTTP ${response.code}）")
-            val body=response.body ?: throw PlaybackSourceException(PlaybackSourceException.Reason.INVALID_RESPONSE)
+            if(response.code() in 400..499 && response.code() !in setOf(408,429))
+                throw PlaybackSourceException(PlaybackSourceException.Reason.HTTP_REJECTED,response.code())
+            if(!response.isSuccessful) throw IOException("播放请求失败（HTTP ${response.code()}）")
+            val body=response.body() ?: throw PlaybackSourceException(PlaybackSourceException.Reason.INVALID_RESPONSE)
             val limit=16*1024*1024
             if(body.contentLength()>limit) throw PlaybackSourceException(PlaybackSourceException.Reason.INVALID_RESPONSE)
             val out=java.io.ByteArrayOutputStream(); val buffer=ByteArray(8192); val input=body.byteStream()
@@ -1286,9 +1286,9 @@ constructor(
         headers.forEach { (k, v) -> request.header(k, v) }
         body?.let { request.post(it.toRequestBody("application/json; charset=UTF-8".toMediaType())) }
         return RequestScope.execute(http.newCall(request.build())) { response ->
-            if (response.code == 401 || response.code == 403) throw DeviceRejectedException("播放请求被拒绝（HTTP ${response.code}）")
-            if (!response.isSuccessful) throw IOException("内容请求失败（HTTP ${response.code}）")
-            val bodyStream = response.body ?: throw IOException("内容响应为空")
+            if (response.code() == 401 || response.code() == 403) throw DeviceRejectedException("播放请求被拒绝（HTTP ${response.code()}）")
+            if (!response.isSuccessful) throw IOException("内容请求失败（HTTP ${response.code()}）")
+            val bodyStream = response.body() ?: throw IOException("内容响应为空")
             if (bodyStream.contentLength() > 16 * 1024 * 1024) throw IOException("内容响应过大")
             val input = bodyStream.byteStream(); val out = java.io.ByteArrayOutputStream(); val buffer = ByteArray(8192)
             while (out.size() <= 16 * 1024 * 1024) { val n = input.read(buffer); if (n < 0) break; out.write(buffer, 0, n) }

@@ -69,9 +69,9 @@ object UpdateFiles {
 class AppUpdateRepository : java.io.Closeable {
     private val http = OkHttpClient.Builder().connectTimeout(10, TimeUnit.SECONDS).readTimeout(20, TimeUnit.SECONDS)
         .callTimeout(5, TimeUnit.MINUTES).addNetworkInterceptor { chain ->
-            val url = chain.request().url
+            val url = chain.request().url()
             // Follow GitHub's CDN redirects, never cleartext or arbitrary manifest-provided hosts.
-            if (url.scheme != "https" || url.host !in setOf("github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com"))
+            if (url.scheme() != "https" || url.host() !in setOf("github.com", "release-assets.githubusercontent.com", "objects.githubusercontent.com"))
                 throw IOException("更新下载地址不受支持")
             chain.proceed(chain.request())
         }.build()
@@ -81,8 +81,8 @@ class AppUpdateRepository : java.io.Closeable {
         val call = http.newCall(request("${AppUpdate.RELEASES}/latest/download/update.json"))
         call.timeout().timeout(25, TimeUnit.SECONDS)
         return call.execute().use { response ->
-            if (!response.isSuccessful) throw IOException(if (response.code == 404) "尚无可用的自动更新版本" else "无法检查更新，请稍后重试")
-            val bytes = response.body?.byteStream()?.use { input ->
+            if (!response.isSuccessful) throw IOException(if (response.code() == 404) "尚无可用的自动更新版本" else "无法检查更新，请稍后重试")
+            val bytes = response.body()?.byteStream()?.use { input ->
                 val out = ByteArrayOutputStream(); val buffer = ByteArray(4096)
                 while (true) { val n = input.read(buffer); if (n < 0) break; if (out.size() + n > 65536) throw IOException("更新信息过大"); out.write(buffer, 0, n) }
                 out.toByteArray()
@@ -94,11 +94,11 @@ class AppUpdateRepository : java.io.Closeable {
         if (UpdateFiles.verify(file, update)) return
         http.newCall(request(update.downloadUrl)).execute().use { response ->
             if (!response.isSuccessful) throw IOException("安装包下载失败，请稍后重试")
-            val body = response.body ?: throw IOException("安装包为空")
+            val body = response.body() ?: throw IOException("安装包为空")
             if (body.contentLength() >= 0 && body.contentLength() != update.size) throw IOException("安装包长度异常")
             body.byteStream().use { UpdateFiles.receive(it, file, update, progress) }
         }
     }
-    fun cancel() = http.dispatcher.cancelAll()
-    override fun close() { cancel(); http.connectionPool.evictAll(); http.dispatcher.executorService.shutdown() }
+    fun cancel() = http.dispatcher().cancelAll()
+    override fun close() { cancel(); http.connectionPool().evictAll(); http.dispatcher().executorService()?.shutdown() }
 }

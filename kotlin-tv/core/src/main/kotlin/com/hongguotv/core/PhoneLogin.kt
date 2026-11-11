@@ -152,7 +152,7 @@ class PhoneLogin(private val http: OkHttpClient) {
                 val text = cloudResponse(response)
                 runCatching { JSONObject(text) }
                     .getOrElse {
-                        JSONObject().put("http", response.code).put("raw", text.take(300))
+                        JSONObject().put("http", response.code()).put("raw", text.take(300))
                     }
             }
         // Never retain authentication responses or verification codes in diagnostics.

@@ -315,7 +315,7 @@ class RecommendationFeed(
                 if (identity != null) {
                     RequestScope.ensureActive()
                     val values = identity.values + params + mapOf("pv_player" to "74332")
-                    val base = request.build().url.newBuilder().query(null).build().toString()
+                    val base = request.build().url().newBuilder().query(null).build().toString()
                     val signature = identity.recommendationSigner(System::currentTimeMillis, values)
                         .signPlayback(base, values)
                     request.url(signature.url)
@@ -395,8 +395,8 @@ class RecommendationFeed(
             )
 
         internal fun feedResponse(response: okhttp3.Response): String {
-            if (!response.isSuccessful) throw IOException("推荐请求失败（HTTP ${response.code}）")
-            val body = response.body ?: throw IOException("推荐接口响应为空")
+            if (!response.isSuccessful) throw IOException("推荐请求失败（HTTP ${response.code()}）")
+            val body = response.body() ?: throw IOException("推荐接口响应为空")
             if (body.contentLength() > FEED_RESPONSE_LIMIT) throw IOException("推荐接口响应过大")
             val out = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(8192)

@@ -64,7 +64,7 @@ class CloudAccountTest {
     fun historyEmptyResponsesIdentifyTheFailingStageWithoutLeakingIdentity() {
         for (failureStage in listOf("read_progress", "multi-detail")) {
             val client = CloudAccountClient(http { request ->
-                if (request.url.encodedPath.contains(failureStage)) ""
+                if (request.url().encodedPath().contains(failureStage)) ""
                 else """{"code":0,"video_data":[{"series_id":"123","vid":"456","vid_index":2}]}"""
             })
             val error = assertThrows(IOException::class.java) { client.history(credentials) }
@@ -83,8 +83,8 @@ class CloudAccountTest {
             CloudAccountClient(
                 http { request ->
                     assertEquals("sessionid=test-only", request.header("Cookie"))
-                    assertEquals(credentials.deviceId, request.url.queryParameter("device_id"))
-                    if (request.url.encodedPath.contains("read_progress"))
+                    assertEquals(credentials.deviceId, request.url().queryParameter("device_id"))
+                    if (request.url().encodedPath().contains("read_progress"))
                         """{"code":0,"video_data":[{"series_id":"123","vid":"456","vid_index":2,"current_play_time":12000}]}"""
                     else """{"code":0,"data":[{"book_id":"123","book_name":"云端测试剧"}]}"""
                 }
@@ -101,15 +101,15 @@ class CloudAccountTest {
             CloudAccountClient(
                 http { request ->
                     calls++
-                    assertEquals("api5-normal-sinfonlinea.fqnovel.com", request.url.host)
+                    assertEquals("api5-normal-sinfonlinea.fqnovel.com", request.url().host())
                     assertEquals("sessionid=test-only", request.header("Cookie"))
-                    assertEquals(credentials.deviceId, request.url.queryParameter("device_id"))
+                    assertEquals(credentials.deviceId, request.url().queryParameter("device_id"))
                     assertEquals(
                         "/reading/bookapi/read_progress/upload/v1/",
-                        request.url.encodedPath,
+                        request.url().encodedPath(),
                     )
                     val buffer = okio.Buffer()
-                    request.body!!.writeTo(buffer)
+                    request.body()!!.writeTo(buffer)
                     val body = JSONObject(buffer.readUtf8())
                     val book = body.getJSONArray("books").getJSONObject(0)
                     assertEquals(1, body.getInt("write_mode"))

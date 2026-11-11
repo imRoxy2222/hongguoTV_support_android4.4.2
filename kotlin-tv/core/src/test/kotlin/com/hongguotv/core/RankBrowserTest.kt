@@ -40,8 +40,8 @@ class RankBrowserTest {
                     .addInterceptor { chain ->
                         val request = chain.request()
                         requests++
-                        assertEquals("/rank/${board.route}", request.url.encodedPath)
-                        val p = request.url.queryParameter("page")!!.toInt()
+                        assertEquals("/rank/${board.route}", request.url().encodedPath())
+                        val p = request.url().queryParameter("page")!!.toInt()
                         Response.Builder()
                             .request(request)
                             .protocol(Protocol.HTTP_1_1)
@@ -75,7 +75,7 @@ class RankBrowserTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    if (request.url.queryParameter("page") == "2") throw IOException("offline")
+                    if (request.url().queryParameter("page") == "2") throw IOException("offline")
                     Response.Builder()
                         .request(request)
                         .protocol(Protocol.HTTP_1_1)

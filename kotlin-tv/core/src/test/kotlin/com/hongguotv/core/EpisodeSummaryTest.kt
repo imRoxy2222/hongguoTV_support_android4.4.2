@@ -31,14 +31,14 @@ class EpisodeSummaryTest {
                         calls++
                         val request = chain.request()
                         val body =
-                            if (request.url.encodedPath.contains("subscribe/list"))
+                            if (request.url().encodedPath().contains("subscribe/list"))
                                 """{"code":0,"data":{"subscribe_items":[{"video_data":{"series_id":"123","title":"剧集"}}]}}"""
                             else {
                                 assertEquals(
                                     "/reading/bookapi/multi-detail/v1/",
-                                    request.url.encodedPath,
+                                    request.url().encodedPath(),
                                 )
-                                assertEquals("123", request.url.queryParameter("book_id"))
+                                assertEquals("123", request.url().queryParameter("book_id"))
                                 if (fail) throw java.io.IOException("offline")
                                 """{"code":0,"data":[{"book_id":"123","drama_chapter_number":"80"}]}"""
                             }

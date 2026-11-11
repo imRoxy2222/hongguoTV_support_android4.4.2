@@ -32,9 +32,9 @@ class WebLoginTest {
             WebLogin(
                 http { request, response ->
                     calls++
-                    assertEquals("hongguoduanju.com", request.url.host)
-                    assertEquals("513755", request.url.queryParameter("aid"))
-                    when (request.url.encodedPath) {
+                    assertEquals("hongguoduanju.com", request.url().host())
+                    assertEquals("513755", request.url().queryParameter("aid"))
+                    when (request.url().encodedPath()) {
                         "/passport/web/get_qrcode/" -> qr(response)
                         "/passport/web/send_code/" -> {
                             assertEquals("test-csrf", request.header("x-tt-passport-csrf-token"))
@@ -44,9 +44,9 @@ class WebLoginTest {
                                     .orEmpty()
                                     .contains("passport_csrf_token=test-csrf")
                             )
-                            val body = request.body as FormBody
+                            val body = request.body() as FormBody
                             val values =
-                                (0 until body.size).associate { body.name(it) to body.value(it) }
+                                (0 until body.size()).associate { body.name(it) to body.value(it) }
                             assertEquals(WebLogin.mix("+86 13800138000"), values["mobile"])
                             assertEquals(WebLogin.mix("24"), values["type"])
                             """{"message":"error","data":{"error_code":1105,"verify_center_decision_conf":"challenge"}}"""
@@ -67,8 +67,8 @@ class WebLoginTest {
         val login =
             WebLogin(
                 http { request, response ->
-                    paths += request.url.encodedPath
-                    when (request.url.encodedPath) {
+                    paths += request.url().encodedPath()
+                    when (request.url().encodedPath()) {
                         "/passport/web/get_qrcode/" -> qr(response)
                         "/passport/web/check_qrconnect/" ->
                             """{"message":"success","data":{"status":"3","redirect_url":"/auth/complete"}}"""
@@ -104,7 +104,7 @@ class WebLoginTest {
         val login =
             WebLogin(
                 http { request, response ->
-                    if (request.url.encodedPath.endsWith("get_qrcode/")) qr(response)
+                    if (request.url().encodedPath().endsWith("get_qrcode/")) qr(response)
                     else
                         """{"message":"success","data":{"status":"confirmed","redirect_url":"https://example.com/login"}}"""
                 }

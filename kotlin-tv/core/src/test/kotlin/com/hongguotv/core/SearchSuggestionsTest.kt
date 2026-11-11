@@ -31,13 +31,13 @@ class SearchSuggestionsTest {
         assertTrue(requests.isEmpty())
         assertEquals(listOf("大佬，你该出手了", "大佬快醒醒"), repository.searchSuggestions(" dalao "))
         repository.searchSuggestions("大佬 & 重生")
-        assertEquals("/incent_resource/suggestion", requests.first().url.encodedPath)
-        assertEquals("dalao", requests.first().url.queryParameter("query"))
-        assertEquals("大佬 & 重生", requests.last().url.queryParameter("query"))
-        assertEquals("8", requests.first().url.queryParameter("count"))
+        assertEquals("/incent_resource/suggestion", requests.first().url().encodedPath())
+        assertEquals("dalao", requests.first().url().queryParameter("query"))
+        assertEquals("大佬 & 重生", requests.last().url().queryParameter("query"))
+        assertEquals("8", requests.first().url().queryParameter("count"))
         assertEquals(
-            requests.first().url.queryParameter("web_id"),
-            requests.last().url.queryParameter("web_id"),
+            requests.first().url().queryParameter("web_id"),
+            requests.last().url().queryParameter("web_id"),
         )
     }
 

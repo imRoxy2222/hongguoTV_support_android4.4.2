@@ -39,7 +39,7 @@ class PhoneLoginTest {
             .build()
 
     private fun deviceRegister(request: Request) =
-        request.url.encodedPath == "/service/2/device_register/"
+        request.url().encodedPath() == "/service/2/device_register/"
 
     private val registered = 200 to """{"device_id":"333","install_id":"444"}"""
 
@@ -84,7 +84,7 @@ class PhoneLoginTest {
                 respond = { request ->
                     when {
                         deviceRegister(request) -> registered
-                        request.url.encodedPath.contains("/send_code/") ->
+                        request.url().encodedPath().contains("/send_code/") ->
                             200 to """{"message":"success","data":{"mobile":"138******00","mobile_ticket":"tk"}}"""
                         else -> {
                             calls.incrementAndGet()
@@ -112,10 +112,10 @@ class PhoneLoginTest {
             client { request ->
                 when {
                     deviceRegister(request) -> registered
-                    request.url.encodedPath.contains("/send_code/") ->
+                    request.url().encodedPath().contains("/send_code/") ->
                         200 to """{"message":"success","data":{"mobile":"138******00","mobile_ticket":"tk"}}"""
                     else -> {
-                        endpoints += request.url.encodedPath
+                        endpoints += request.url().encodedPath()
                         200 to """{"message":"error","data":{"error_code":1,"description":"会话过期，请重新登录"}}"""
                     }
                 }
@@ -146,7 +146,7 @@ class PhoneLoginTest {
             client { request ->
                 when {
                     deviceRegister(request) -> registered
-                    request.url.encodedPath.contains("/send_code/") ->
+                    request.url().encodedPath().contains("/send_code/") ->
                         200 to """{"message":"success","data":{"mobile":"138******00","mobile_ticket":"tk"}}"""
                     else ->
                         200 to """{"message":"error","data":{"error_code":1203,"description":"错误次数过多或验证码过期，请稍后重试"}}"""
@@ -179,10 +179,10 @@ class PhoneLoginTest {
                 respond = { request ->
                     when {
                         deviceRegister(request) -> registered
-                        request.url.encodedPath.contains("/send_code/") ->
+                        request.url().encodedPath().contains("/send_code/") ->
                             200 to """{"message":"success","data":{"mobile":"138******00","mobile_ticket":"tk"}}"""
                         else -> {
-                            paths += request.url.encodedPath
+                            paths += request.url().encodedPath()
                             200 to """{"message":"success","data":{}}"""
                         }
                     }

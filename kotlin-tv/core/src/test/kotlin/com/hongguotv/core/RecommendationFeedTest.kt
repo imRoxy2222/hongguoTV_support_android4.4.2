@@ -155,11 +155,11 @@ class RecommendationFeedTest {
         assertEquals(1, registrations)
         assertEquals(2, requests.size)
         assertNotNull(requests[0].header("x-medusa"))
-        assertEquals("333", requests[0].url.queryParameter("device_id"))
-        assertEquals("74332", requests[0].url.queryParameter("version_code"))
+        assertEquals("333", requests[0].url().queryParameter("device_id"))
+        assertEquals("74332", requests[0].url().queryParameter("version_code"))
         assertTrue(requests[0].header("User-Agent")!!.contains("74332"))
         assertNull(requests[1].header("x-medusa"))
-        assertNull(requests[1].url.queryParameter("device_id"))
+        assertNull(requests[1].url().queryParameter("device_id"))
         requests.forEach { assertEquals(account.cookie, it.header("Cookie")) }
         assertTrue(cursor.unsignedFallback)
         val restored = RecommendationCursor()
@@ -186,8 +186,8 @@ class RecommendationFeedTest {
         assertEquals(1, registrations)
         requests.forEach {
             assertNotNull(it.header("x-medusa"))
-            assertEquals("333", it.url.queryParameter("device_id"))
-            assertEquals("444", it.url.queryParameter("iid"))
+            assertEquals("333", it.url().queryParameter("device_id"))
+            assertEquals("444", it.url().queryParameter("iid"))
             assertEquals("install_id=444", it.header("Cookie"))
         }
         val profile = session.profile(http)
@@ -216,9 +216,9 @@ class RecommendationFeedTest {
         assertTrue(session.rotate(http, session.profile(http)))
         assertEquals("103", feed.page(3).items.single().id)
         assertEquals(2, registrations)
-        assertEquals("/reading/bookapi/bookmall/tab/v1/", requests[2].url.encodedPath)
-        assertEquals("0", requests[2].url.queryParameter("offset"))
-        assertNull(requests[2].url.queryParameter("session_id"))
+        assertEquals("/reading/bookapi/bookmall/tab/v1/", requests[2].url().encodedPath())
+        assertEquals("0", requests[2].url().queryParameter("offset"))
+        assertNull(requests[2].url().queryParameter("session_id"))
         assertEquals(setOf("101", "102", "103"), cursor.seenIds())
     }
 
@@ -244,14 +244,14 @@ class RecommendationFeedTest {
         assertTrue(restored.restore(cursor.snapshot()))
         assertEquals("103", RecommendationFeed(http, cursor = restored).page(1).items.single().id)
         assertEquals(listOf("/reading/bookapi/bookmall/tab/v1/", "/reading/bookapi/bookmall/cell/change/v1/",
-            "/reading/bookapi/bookmall/cell/change/v1/"), requests.map { it.url.encodedPath })
-        assertEquals(listOf("0", "0", "6"), requests.map { it.url.queryParameter("offset") })
-        assertEquals("9001", requests[1].url.queryParameter("cell_id"))
-        assertEquals("8001", requests[1].url.queryParameter("plan_id"))
-        assertEquals("fixture-v7", requests[1].url.queryParameter("version_tag"))
-        assertEquals("2", requests[1].url.queryParameter("client_req_type"))
-        assertEquals("cell-session", requests[2].url.queryParameter("session_id"))
-        assertEquals(setOf("101", "102"), requests[2].url.queryParameter("filter_ids")!!.split(",").toSet())
+            "/reading/bookapi/bookmall/cell/change/v1/"), requests.map { it.url().encodedPath() })
+        assertEquals(listOf("0", "0", "6"), requests.map { it.url().queryParameter("offset") })
+        assertEquals("9001", requests[1].url().queryParameter("cell_id"))
+        assertEquals("8001", requests[1].url().queryParameter("plan_id"))
+        assertEquals("fixture-v7", requests[1].url().queryParameter("version_tag"))
+        assertEquals("2", requests[1].url().queryParameter("client_req_type"))
+        assertEquals("cell-session", requests[2].url().queryParameter("session_id"))
+        assertEquals(setOf("101", "102"), requests[2].url().queryParameter("filter_ids")!!.split(",").toSet())
         assertNotNull(cursor.nextBatch().cellFlow)
         assertNull(cursor.nextBatch(restartSession = true).cellFlow)
     }
@@ -267,9 +267,9 @@ class RecommendationFeedTest {
                 .body((if (requests.size == 1) infiniteResponse() else cellResponse("102", 6)).toResponseBody()).build()
         }.build()
         assertEquals("102", RecommendationFeed(http, cursor = cursor).page(1).items.single().id)
-        assertNull(requests[0].url.queryParameter("session_id"))
-        assertEquals("0", requests[0].url.queryParameter("offset"))
-        assertTrue(requests[1].url.encodedPath.contains("cell/change"))
+        assertNull(requests[0].url().queryParameter("session_id"))
+        assertEquals("0", requests[0].url().queryParameter("offset"))
+        assertTrue(requests[1].url().encodedPath().contains("cell/change"))
     }
 
     @Test
@@ -365,11 +365,11 @@ class RecommendationFeedTest {
         RecommendationFeed(http, cursor = cursor.nextBatch()).page(1)
         // offset 按「一条响应实际下发的条数」前进（fixture 每轮 2 条），而不是固定 +1，
         // 否则会与上一页大面积重叠。
-        assertEquals(listOf("0", "2", "4"), requests.map { it.url.queryParameter("offset") })
+        assertEquals(listOf("0", "2", "4"), requests.map { it.url().queryParameter("offset") })
         assertNull(requests[0].header("Cookie"))
-        assertNull(requests[0].url.queryParameter("device_id"))
-        assertEquals("test-page-session", requests[1].url.queryParameter("session_id"))
-        assertEquals("2", requests[2].url.queryParameter("client_req_type"))
+        assertNull(requests[0].url().queryParameter("device_id"))
+        assertEquals("test-page-session", requests[1].url().queryParameter("session_id"))
+        assertEquals("2", requests[2].url().queryParameter("client_req_type"))
         assertThrows(IOException::class.java) { feed.page(4) }
     }
 
@@ -416,14 +416,14 @@ class RecommendationFeedTest {
                 .build()
         val account = AccountCredentials("sessionid=test-only", "test-device", "test-install")
         RecommendationFeed(http, account).page(1)
-        assertEquals("api5-normal-sinfonlinea.fqnovel.com", requested!!.url.host)
+        assertEquals("api5-normal-sinfonlinea.fqnovel.com", requested!!.url().host())
         assertEquals(account.cookie, requested!!.header("Cookie"))
         // 账号态只带 Cookie：再带 device_id 会被 feed 接口判 110 ILLEGAL_ACCESS。
-        assertNull(requested!!.url.queryParameter("device_id"))
-        assertNull(requested!!.url.queryParameter("iid"))
+        assertNull(requested!!.url().queryParameter("device_id"))
+        assertNull(requested!!.url().queryParameter("iid"))
         RecommendationFeed(http).page(1)
         assertNull(requested!!.header("Cookie"))
-        assertNull(requested!!.url.queryParameter("session_id"))
+        assertNull(requested!!.url().queryParameter("session_id"))
     }
 
     @Test
@@ -437,7 +437,7 @@ class RecommendationFeedTest {
                         val req = chain.request()
                         requests += req
                         val buffer = okio.Buffer()
-                        req.body!!.writeTo(buffer)
+                        req.body()!!.writeTo(buffer)
                         val payload = JSONObject(buffer.readUtf8())
                         payloads += payload
                         val row =
@@ -482,8 +482,8 @@ class RecommendationFeedTest {
             assertEquals(24, payloads[1].getInt("offset"))
             assertEquals("201", payloads[1].getString("filter_ids"))
             assertEquals("test-category-session", payloads[1].getString("session_id"))
-            assertEquals("POST", requests[0].method)
-            assertEquals("/reading/distribution/category/landpage/v/", requests[0].url.encodedPath)
+            assertEquals("POST", requests[0].method())
+            assertEquals("/reading/distribution/category/landpage/v/", requests[0].url().encodedPath())
             assertNotNull(requests[0].header("X-Argus"))
         }
     }
@@ -592,12 +592,12 @@ class RecommendationFeedTest {
         val page = RecommendationFeed(http, cursor = cursor).page(1)
         assertEquals(1, page.items.size)
         assertEquals(2, requests.size)
-        assertEquals("stale-session", requests[0].url.queryParameter("session_id"))
+        assertEquals("stale-session", requests[0].url().queryParameter("session_id"))
         // 重试同时换到备用域名，避免反复打同一个被限流的节点。
-        assertNotEquals(requests[0].url.host, requests[1].url.host)
-        assertNull(requests[1].url.queryParameter("session_id"))
-        assertEquals("0", requests[1].url.queryParameter("offset"))
-        assertEquals("1", requests[1].url.queryParameter("client_req_type"))
+        assertNotEquals(requests[0].url().host(), requests[1].url().host())
+        assertNull(requests[1].url().queryParameter("session_id"))
+        assertEquals("0", requests[1].url().queryParameter("offset"))
+        assertEquals("1", requests[1].url().queryParameter("client_req_type"))
     }
 
     /** 冷启动续刷依赖快照往返；异常输入必须被拒绝而不是污染游标。 */

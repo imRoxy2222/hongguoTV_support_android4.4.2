@@ -151,8 +151,8 @@ class FasterBrowsingTest {
             assertThrows(java.io.IOException::class.java) { remote.read(0, 1) }
         } finally {
             server.stop(0)
-            client.connectionPool.evictAll()
-            client.dispatcher.executorService.shutdownNow()
+            client.connectionPool().evictAll()
+            client.dispatcher().executorService().shutdownNow()
         }
     }
 }

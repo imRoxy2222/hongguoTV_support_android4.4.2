@@ -17,15 +17,15 @@ class CloudFavoriteActionsTest {
                     .addInterceptor { chain ->
                         calls++
                         val request = chain.request()
-                        assertEquals("POST", request.method)
+                        assertEquals("POST", request.method())
                         assertEquals(
                             "/reading/bookapi/bookshelf/video/update/v1/",
-                            request.url.encodedPath,
+                            request.url().encodedPath(),
                         )
                         assertEquals("test-only", request.header("Cookie"))
-                        assertEquals("123", request.url.queryParameter("device_id"))
+                        assertEquals("123", request.url().queryParameter("device_id"))
                         val buffer = okio.Buffer()
-                        request.body!!.writeTo(buffer)
+                        request.body()!!.writeTo(buffer)
                         val json = JSONObject(buffer.readUtf8())
                         assertFalse(json.getBoolean("is_cancelled"))
                         val row = json.getJSONArray("update_bookshelf_video_list").getJSONObject(0)

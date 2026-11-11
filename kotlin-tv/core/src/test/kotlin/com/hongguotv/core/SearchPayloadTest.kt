@@ -81,7 +81,7 @@ class SearchPayloadTest {
 
     @Test fun websiteSearchFiltersGenresAndKeepsPagination() {
         val repo=ContentRepository(OkHttpClient.Builder().addInterceptor { chain ->
-            assertEquals("/api/search/result",chain.request().url.encodedPath)
+            assertEquals("/api/search/result",chain.request().url().encodedPath())
             assertNotNull(chain.request().header("Referer"))
             okhttp3.Response.Builder().request(chain.request()).protocol(okhttp3.Protocol.HTTP_1_1)
                 .code(200).message("OK").body(okhttp3.ResponseBody.create(null,

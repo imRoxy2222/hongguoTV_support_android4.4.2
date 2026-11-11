@@ -99,10 +99,10 @@ class RelatedWorksTest {
         val repository =
             ContentRepository(
                 http { request ->
-                    assertEquals("/reading/bookapi/plan/v:version/", request.url.encodedPath)
-                    assertEquals("10", request.url.queryParameter("scene"))
-                    assertEquals("detail_page_more_related", request.url.queryParameter("from"))
-                    assertEquals("111", request.url.queryParameter("book_id"))
+                    assertEquals("/reading/bookapi/plan/v:version/", request.url().encodedPath())
+                    assertEquals("10", request.url().queryParameter("scene"))
+                    assertEquals("detail_page_more_related", request.url().queryParameter("from"))
+                    assertEquals("111", request.url().queryParameter("book_id"))
                     calls++
                     if (calls == 1) "" else data
                 }
@@ -136,15 +136,15 @@ class RelatedWorksTest {
             CloudAccountClient(
                 http { request ->
                     calls++
-                    assertEquals("POST", request.method)
+                    assertEquals("POST", request.method())
                     assertEquals(
                         "/reading/bookapi/search/uncover_subscribe/v1/",
-                        request.url.encodedPath,
+                        request.url().encodedPath(),
                     )
                     assertEquals("sessionid=test-only", request.header("Cookie"))
                     assertEquals("gzip", request.header("Content-Encoding"))
                     val buffer = okio.Buffer()
-                    request.body!!.writeTo(buffer)
+                    request.body()!!.writeTo(buffer)
                     val bytes = buffer.readByteArray()
                     val json =
                         JSONObject(GZIPInputStream(bytes.inputStream()).bufferedReader().readText())

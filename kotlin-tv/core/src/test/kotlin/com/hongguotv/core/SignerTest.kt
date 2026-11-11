@@ -68,7 +68,7 @@ class SignerTest {
             val signer = Signer({ now }, profile, random = { 0.5 })
             val signed = signer.signPlayback("https://example.test/model", profile + ("video_id" to "123"), body)
             val url = signed.url.toHttpUrl()
-            val query = url.encodedQuery!!
+            val query = url.encodedQuery()!!
             val ts = signed.headers.getValue("x-khronos").toInt()
             assertNull(url.queryParameter("ts"))
             assertEquals("123", url.queryParameter("video_id"))

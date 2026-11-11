@@ -69,20 +69,20 @@ class PlaybackDeviceSessionTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    val registration = request.url.encodedPath == "/service/2/device_register/"
+                    val registration = request.url().encodedPath() == "/service/2/device_register/"
                     val body =
                         if (registration) {
                             registrations++
                             assertNull(request.header("Cookie"))
                             assertNull(request.header("x-gorgon"))
                             """{"device_id":"333","install_id":"444"}"""
-                        } else if (request.url.encodedPath.startsWith("/reading/bookapi/video_tab/")) {
+                        } else if (request.url().encodedPath().startsWith("/reading/bookapi/video_tab/")) {
                             // 新接口统一回 100103 让调用方回退；本用例只统计旧接口模型请求。
                             """{"code":100103,"message":"PARAM_INVALID","data":null}"""
                         } else {
                             requests += request
-                            assertEquals("333", request.url.queryParameter("device_id"))
-                            assertEquals("444", request.url.queryParameter("iid"))
+                            assertEquals("333", request.url().queryParameter("device_id"))
+                            assertEquals("444", request.url().queryParameter("iid"))
                             assertEquals("ttreq=test-only", request.header("Cookie"))
                             if (++models == 1) "" else model
                         }
@@ -104,7 +104,7 @@ class PlaybackDeviceSessionTest {
         assertEquals(1, registrations)
         // 第二个仓库接收首页刚取到的同集模型，不重复请求。
         assertEquals(2, models)
-        assertEquals(1, requests.map { it.url.queryParameter("cdid") }.distinct().size)
+        assertEquals(1, requests.map { it.url().queryParameter("cdid") }.distinct().size)
     }
 
     @Test

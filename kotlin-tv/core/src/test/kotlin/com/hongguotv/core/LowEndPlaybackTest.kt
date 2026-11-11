@@ -50,7 +50,7 @@ class LowEndPlaybackTest {
         val call = FakeCall()
         scope.cancel()
         assertThrows(IOException::class.java) {
-            scope.run { RequestScope.execute(call) { it.body!!.string() } }
+            scope.run { RequestScope.execute(call) { it.body()!!.string() } }
         }
         assertFalse(call.started)
     }
@@ -87,10 +87,10 @@ class LowEndPlaybackTest {
         val current = RequestScope()
         val first = FakeCall()
         val next = FakeCall()
-        assertEquals("data", old.run { RequestScope.execute(first) { it.body!!.string() } })
+        assertEquals("data", old.run { RequestScope.execute(first) { it.body()!!.string() } })
         old.cancel()
         assertFalse(first.cancelled)
-        assertEquals("data", current.run { RequestScope.execute(next) { it.body!!.string() } })
+        assertEquals("data", current.run { RequestScope.execute(next) { it.body()!!.string() } })
         assertFalse(next.cancelled)
     }
 

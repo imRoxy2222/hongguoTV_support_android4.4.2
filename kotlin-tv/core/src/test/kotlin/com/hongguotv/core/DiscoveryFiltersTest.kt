@@ -124,12 +124,12 @@ class DiscoveryFiltersTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val req = chain.request()
-                    assertEquals("POST", req.method)
-                    assertEquals("/reading/distribution/category/landpage/v/", req.url.encodedPath)
-                    assertEquals("73532", req.url.queryParameter("version_code"))
+                    assertEquals("POST", req.method())
+                    assertEquals("/reading/distribution/category/landpage/v/", req.url().encodedPath())
+                    assertEquals("73532", req.url().queryParameter("version_code"))
                     assertNotNull(req.header("x-gorgon"))
                     val buffer = okio.Buffer()
-                    req.body!!.writeTo(buffer)
+                    req.body()!!.writeTo(buffer)
                     assertEquals(
                         "cate_36",
                         JSONObject(buffer.readUtf8())

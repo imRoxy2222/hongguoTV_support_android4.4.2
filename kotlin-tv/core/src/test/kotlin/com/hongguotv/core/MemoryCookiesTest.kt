@@ -19,7 +19,7 @@ class MemoryCookiesTest {
         val url = "https://hongguoduanju.com/rank/hot-drama".toHttpUrl()
         jar.saveFromResponse(url, listOf(cookie("ttwid", "abc", "hongguoduanju.com")))
         val loaded = jar.loadForRequest("https://hongguoduanju.com/rank/hot-real-drama".toHttpUrl())
-        assertEquals(listOf("ttwid" to "abc"), loaded.map { it.name to it.value })
+        assertEquals(listOf("ttwid" to "abc"), loaded.map { it.name() to it.value() })
     }
 
     @Test
@@ -51,6 +51,6 @@ class MemoryCookiesTest {
         jar.saveFromResponse(url, listOf(cookie("ttwid", "second", "hongguoduanju.com")))
         val loaded = jar.loadForRequest(url)
         assertEquals(1, loaded.size)
-        assertEquals("second", loaded.single().value)
+        assertEquals("second", loaded.single().value())
     }
 }

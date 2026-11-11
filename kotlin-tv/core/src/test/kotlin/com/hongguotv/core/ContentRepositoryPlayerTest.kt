@@ -48,7 +48,7 @@ class ContentRepositoryPlayerTest {
             var compatibleRequests = 0
             val http = OkHttpClient.Builder().addInterceptor { chain ->
                 val request = chain.request()
-                val compatible = request.url.encodedPath == "/novel/player/video_model/v1/"
+                val compatible = request.url().encodedPath() == "/novel/player/video_model/v1/"
                 if (compatible) compatibleRequests++
                 val body = if (compatible) JSONObject().put("code", 0).put("data", JSONObject().put("video_model",
                     JSONObject().put("video_list", list(
@@ -71,7 +71,7 @@ class ContentRepositoryPlayerTest {
         ContentRepository.deviceStore = FakeStore()
         var compatibleRequests = 0
         val http = OkHttpClient.Builder().addInterceptor { chain ->
-            if (chain.request().url.encodedPath == "/novel/player/video_model/v1/") compatibleRequests++
+            if (chain.request().url().encodedPath() == "/novel/player/video_model/v1/") compatibleRequests++
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
                 .code(200).message("test").body("".toResponseBody()).build()
         }.build()
@@ -82,7 +82,7 @@ class ContentRepositoryPlayerTest {
 
     @Test fun shortplayModelListResolvesWithoutAnyFallbackCall() {
         val (repo, _) = repository { request ->
-            when (request.url.host) {
+            when (request.url().host()) {
                 "api3-normal-sinfonlinea.fqnovel.com" -> JSONObject().put("code", 0).put("data", JSONObject().put("video_model",
                     JSONObject().put("video_list", list(
                         entry(1280, "h265", "https://example.com/720", 720),
@@ -102,9 +102,9 @@ class ContentRepositoryPlayerTest {
             .put("fallback_api", JSONObject().put("fallback_api", "https://example.com/stream").toString())
         val (repo, _) = repository { request ->
             when {
-                request.url.host == "api5-normal-sinfonlineb.fqnovel.com" && !request.url.toString().contains("_rticket") ->
+                request.url().host() == "api5-normal-sinfonlineb.fqnovel.com" && !request.url().toString().contains("_rticket") ->
                     JSONObject().put("code", 0).put("data", JSONObject().put("123", JSONObject().put("video_model", model.toString()))).toString()
-                request.url.host == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(
+                request.url().host() == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(
                     entry(1080, "h265", "https://example.com/h1080", 1920),
                     entry(480, "bytevc2", "https://example.com/unsupported"))))).toString()
                 else -> "{}"
@@ -118,7 +118,7 @@ class ContentRepositoryPlayerTest {
 
     @Test fun byteVc2NeverWinsTheQualityRace() {
         val (repo, _) = repository { request ->
-            when (request.url.host) {
+            when (request.url().host()) {
                 "api3-normal-sinfonlinea.fqnovel.com" -> JSONObject().put("code", 0).put("data", JSONObject().put("video_model",
                     JSONObject().put("video_list", list(
                         entry(1080, "bytevc2", "https://example.com/unsupported", 1920),
@@ -134,11 +134,11 @@ class ContentRepositoryPlayerTest {
     @Test fun rejectedDeviceRotatesOnceAndFallsBackToLegacyEndpoint() {
         var legacyCalls = 0
         val (repo, store) = repository { request ->
-            val url = request.url.toString()
+            val url = request.url().toString()
             when {
                 url.contains("fqnovel.com") && url.contains("_rticket") -> { legacyCalls++; """{"code":0,"data":{"123":{"video_model":{"fallback_api":"https://example.com/legacy"}}}}""" }
-                request.url.host == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(entry(1280, "h265", "https://example.com/720", 720))))).toString()
-                request.url.host == "api3-normal-sinfonlinea.fqnovel.com" || request.url.host == "api5-normal-sinfonlineb.fqnovel.com" -> """{"code":110001,"message":"unknown error"}"""
+                request.url().host() == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(entry(1280, "h265", "https://example.com/720", 720))))).toString()
+                request.url().host() == "api3-normal-sinfonlinea.fqnovel.com" || request.url().host() == "api5-normal-sinfonlineb.fqnovel.com" -> """{"code":110001,"message":"unknown error"}"""
                 else -> "{}"
             }
         }
@@ -153,9 +153,9 @@ class ContentRepositoryPlayerTest {
         // register devices; the legacy fixed-device path must still resolve.
         val (repo, store) = repository { request ->
             when {
-                request.url.host == "log.snssdk.com" || request.url.host == "reading.snssdk.com" -> "{}"
-                request.url.host == "api5-normal-sinfonlineb.fqnovel.com" -> """{"Code":0,"data":{"123":{"video_model":{"fallback_api":"https://example.com/legacy"}}}}"""
-                request.url.host == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(entry(720, "h264", "https://example.com/avc"))))).toString()
+                request.url().host() == "log.snssdk.com" || request.url().host() == "reading.snssdk.com" -> "{}"
+                request.url().host() == "api5-normal-sinfonlineb.fqnovel.com" -> """{"Code":0,"data":{"123":{"video_model":{"fallback_api":"https://example.com/legacy"}}}}"""
+                request.url().host() == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(entry(720, "h264", "https://example.com/avc"))))).toString()
                 else -> "{}"
             }
         }
@@ -168,9 +168,9 @@ class ContentRepositoryPlayerTest {
     @Test fun entirelyUnplayableSourceStillFailsBeforeStartingAudio() {
         val (repo, _) = repository { request ->
             when {
-                request.url.toString().contains("fqnovel.com") && request.url.toString().contains("_rticket") -> """{"code":0,"data":{"123":{"video_model":{"fallback_api":"https://example.com/legacy"}}}}"""
-                request.url.host == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(entry(720, "ByteVC2", "https://example.com/unsupported"))))).toString()
-                request.url.host?.endsWith("fqnovel.com") == true -> JSONObject().put("code", 0).put("data", JSONObject().put("video_model",
+                request.url().toString().contains("fqnovel.com") && request.url().toString().contains("_rticket") -> """{"code":0,"data":{"123":{"video_model":{"fallback_api":"https://example.com/legacy"}}}}"""
+                request.url().host() == "example.com" -> JSONObject().put("video_info", JSONObject().put("data", JSONObject().put("video_list", list(entry(720, "ByteVC2", "https://example.com/unsupported"))))).toString()
+                request.url().host()?.endsWith("fqnovel.com") == true -> JSONObject().put("code", 0).put("data", JSONObject().put("video_model",
                     JSONObject().put("video_list", list(entry(720, "ByteVC2", "https://example.com/unsupported"))))).toString()
                 else -> "{}"
             }
@@ -191,7 +191,7 @@ class ContentRepositoryPlayerTest {
         }
         val blob = (byteArrayOf(0xa8.toByte(), 0, 1, 0) + cipher).base64()
         val (repo, _) = repository { request ->
-            when (request.url.host) {
+            when (request.url().host()) {
                 "api3-normal-sinfonlinea.fqnovel.com" -> JSONObject().put("code", 0).put("data", JSONObject().put("video_model",
                     JSONObject().put("key_seed", seed.base64()).put("video_list", list(entry(720, "h265", blob, 1280))))).toString()
                 else -> "{}"

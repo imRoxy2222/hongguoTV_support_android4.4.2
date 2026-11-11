@@ -14,13 +14,13 @@ class CloudFavoritesTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    assertEquals("GET", request.method)
+                    assertEquals("GET", request.method())
                     assertEquals(
                         "/reading/bookapi/bookshelf/video/info/v1/",
-                        request.url.encodedPath,
+                        request.url().encodedPath(),
                     )
                     assertEquals("test-only", request.header("Cookie"))
-                    assertEquals("123", request.url.queryParameter("device_id"))
+                    assertEquals("123", request.url().queryParameter("device_id"))
                     Response.Builder()
                         .request(request)
                         .protocol(Protocol.HTTP_1_1)

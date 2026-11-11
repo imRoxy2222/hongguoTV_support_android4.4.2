@@ -68,8 +68,8 @@ class DramaDiscoveryTest {
                 OkHttpClient.Builder()
                     .addInterceptor { chain ->
                         val request = chain.request()
-                        assertEquals("/category/${category.route}/fantasy", request.url.encodedPath)
-                        assertEquals("2", request.url.queryParameter("page"))
+                        assertEquals("/category/${category.route}/fantasy", request.url().encodedPath())
+                        assertEquals("2", request.url().queryParameter("page"))
                         Response.Builder()
                             .request(request)
                             .protocol(Protocol.HTTP_1_1)
@@ -162,7 +162,7 @@ class DramaDiscoveryTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     calls++
-                    assertEquals("2", chain.request().url.queryParameter("page"))
+                    assertEquals("2", chain.request().url().queryParameter("page"))
                     val body =
                         if (calls == 1) "Bad Gateway"
                         else

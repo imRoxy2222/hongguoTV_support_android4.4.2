@@ -60,12 +60,12 @@ class ContentRepositoryTest {
         val http = OkHttpClient.Builder().addInterceptor { chain ->
             val request = chain.request()
             requests += request
-            fixtureResponse(request, if (request.method == "GET") "" else batchPlaybackFixture(playbackRequestIds(request)))
+            fixtureResponse(request, if (request.method() == "GET") "" else batchPlaybackFixture(playbackRequestIds(request)))
         }.build()
         val session = PlaybackDeviceSession { DeviceRegister.Registered("333", "444") }
         ContentRepository(http, playbackSession = session).streamLadder("123")
         ContentRepository(http, playbackSession = session).streamLadder("456")
-        assertEquals(listOf("GET", "POST", "POST"), requests.map { it.method })
+        assertEquals(listOf("GET", "POST", "POST"), requests.map { it.method() })
         assertEquals("456", playbackRequestIds(requests.last()).single())
     }
 
@@ -81,11 +81,11 @@ class ContentRepositoryTest {
         val http = OkHttpClient.Builder().addInterceptor { chain ->
             val r = chain.request()
             calls++
-            val key = r.url.queryParameter("device_id") + r.url.host + r.url.encodedPath
+            val key = r.url().queryParameter("device_id") + r.url().host() + r.url().encodedPath()
             val hit = (hits[key] ?: 0) + 1
             hits[key] = hit
-            val body = if (hit > 1 || r.url.host == PlayRetryPlan.host(2)) ""
-                else if (r.method == "GET") videoTabModel else playbackModel
+            val body = if (hit > 1 || r.url().host() == PlayRetryPlan.host(2)) ""
+                else if (r.method() == "GET") videoTabModel else playbackModel
             fixtureResponse(r, body)
         }.build()
         val repo = ContentRepository(http, playbackSession = session)
@@ -146,14 +146,14 @@ class ContentRepositoryTest {
         var now = 1000L
         val http = OkHttpClient.Builder().addInterceptor { chain ->
             val request = chain.request()
-            when (request.url.encodedPath) {
+            when (request.url().encodedPath()) {
                 "/service/2/device_register/" -> {
                     registrations++
                     fixtureResponse(request, """{"device_id":"333","install_id":"444"}""")
                 }
                 "/reading/bookapi/video_tab/multi_video_model/v1/" -> fixtureResponse(request, "")
                 else -> {
-                    if (request.url.host == PlayRetryPlan.host(0)) throw java.net.SocketTimeoutException("test-only")
+                    if (request.url().host() == PlayRetryPlan.host(0)) throw java.net.SocketTimeoutException("test-only")
                     fixtureResponse(request, "")
                 }
             }
@@ -253,7 +253,7 @@ class ContentRepositoryTest {
         var legacyCalls = 0
         val http = OkHttpClient.Builder().addInterceptor { chain ->
             val request = chain.request()
-            when (request.url.encodedPath) {
+            when (request.url().encodedPath()) {
                 "/service/2/device_register/" -> {
                     registrations++
                     fixtureResponse(request, """{"device_id":"${333 + registrations}","install_id":"${444 + registrations}"}""", setCookie = true)
@@ -282,7 +282,7 @@ class ContentRepositoryTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    if (request.url.encodedPath == "/service/2/device_register/") {
+                    if (request.url().encodedPath() == "/service/2/device_register/") {
                         registrations.incrementAndGet()
                         return@addInterceptor fixtureResponse(request, """{"device_id":"333","install_id":"444"}""", setCookie = true)
                     }
@@ -342,18 +342,18 @@ class ContentRepositoryTest {
         val session = PlaybackDeviceSession { DeviceRegister.Registered("333", "444") }
         ContentRepository(http, playbackSession = session).streamLadder("123")
         val request = requests.single()
-        assertEquals("GET", request.method)
-        assertEquals("123", request.url.queryParameter("video_id"))
-        assertEquals("333", request.url.queryParameter("device_id"))
-        assertEquals("444", request.url.queryParameter("iid"))
-        assertEquals(request.url.queryParameter("_rticket"), request.header("x-ss-req-ticket"))
-        assertNull(request.url.queryParameter("ts"))
+        assertEquals("GET", request.method())
+        assertEquals("123", request.url().queryParameter("video_id"))
+        assertEquals("333", request.url().queryParameter("device_id"))
+        assertEquals("444", request.url().queryParameter("iid"))
+        assertEquals(request.url().queryParameter("_rticket"), request.header("x-ss-req-ticket"))
+        assertNull(request.url().queryParameter("ts"))
             assertTrue(kotlin.math.abs(request.header("x-khronos")!!.toLong() -
-                request.url.queryParameter("_rticket")!!.toLong() / 1000) <= 1)
+                request.url().queryParameter("_rticket")!!.toLong() / 1000) <= 1)
         for (header in listOf("x-gorgon", "x-medusa", "x-argus", "x-ladon", "x-khronos", "x-helios"))
             assertFalse(request.header(header).isNullOrBlank())
         val ts = request.header("x-khronos")!!.toInt()
-        assertEquals(0, Signer().branch(request.url.encodedQuery!!, null, ts))
+        assertEquals(0, Signer().branch(request.url().encodedQuery()!!, null, ts))
     }
 
     private fun fixtureResponse(request: Request, body: String, setCookie: Boolean = false) =
@@ -375,7 +375,7 @@ class ContentRepositoryTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    when (request.url.encodedPath) {
+                    when (request.url().encodedPath()) {
                         "/service/2/device_register/" ->
                             fixtureResponse(
                                 request,
@@ -385,11 +385,11 @@ class ContentRepositoryTest {
                         "/reading/bookapi/video_tab/multi_video_model/v1/" -> {
                             tabCalls.incrementAndGet()
                             // 官方 GetVideoModelRequest 的 snake_case 参数缺一即 100103。
-                            assertEquals("123", request.url.queryParameter("video_id"))
-                            assertEquals("0", request.url.queryParameter("video_id_type"))
-                            assertEquals("1", request.url.queryParameter("device_level"))
-                            assertEquals("1", request.url.queryParameter("need_all_video_definition"))
-                            assertEquals("1024", request.url.queryParameter("video_platform"))
+                            assertEquals("123", request.url().queryParameter("video_id"))
+                            assertEquals("0", request.url().queryParameter("video_id_type"))
+                            assertEquals("1", request.url().queryParameter("device_level"))
+                            assertEquals("1", request.url().queryParameter("need_all_video_definition"))
+                            assertEquals("1024", request.url().queryParameter("video_platform"))
                             fixtureResponse(request, videoTabModel)
                         }
                         "/novel/player/multi_video_model/v1/" -> {
@@ -415,7 +415,7 @@ class ContentRepositoryTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    when (request.url.encodedPath) {
+                    when (request.url().encodedPath()) {
                         "/service/2/device_register/" ->
                             fixtureResponse(
                                 request,
@@ -459,7 +459,7 @@ class ContentRepositoryTest {
                 .put("encrypt_info", JSONObject().put("encrypt", true).put("spade_a", spade))
         val repo = repository { request ->
             requests += request
-            check(request.url.host != "example.com")
+            check(request.url().host() != "example.com")
             JSONObject()
                 .put(
                     "data",
@@ -495,7 +495,7 @@ class ContentRepositoryTest {
             var calls = 0
             val repo = repository { request ->
                 calls++
-                if (request.url.host == "example.com")
+                if (request.url().host() == "example.com")
                     """{"video_info":{"data":{"video_list":{"v":{"quality_desc":"480p","codec_type":"h264","main_url":"https://example.com/valid"}}}}}"""
                 else
                     JSONObject()
@@ -547,11 +547,11 @@ class ContentRepositoryTest {
         var calls = 0
         val repo = repository { request ->
             calls++
-            assertEquals("hongguoduanju.com", request.url.host)
-            assertEquals("/api/search/result", request.url.encodedPath)
-            assertEquals("大佬", request.url.queryParameter("query"))
-            assertEquals("2", request.url.queryParameter("page"))
-            assertNull(request.url.queryParameter("tab_type"))
+            assertEquals("hongguoduanju.com", request.url().host())
+            assertEquals("/api/search/result", request.url().encodedPath())
+            assertEquals("大佬", request.url().queryParameter("query"))
+            assertEquals("2", request.url().queryParameter("page"))
+            assertNull(request.url().queryParameter("tab_type"))
             assertNull(request.header("x-gorgon"))
             """{"pageNum":2,"hasMore":true,"searchList":[{"video_data":{"series_id":"123","series_title":"大佬真人短剧","episode_cnt":80}},{"video_data":{"series_id":"456","series_title":"大佬动画漫剧","episode_cnt":100}}]}"""
         }
@@ -604,23 +604,23 @@ class ContentRepositoryTest {
             assertTrue(error.message.orEmpty().contains("110001"))
         }
         for (request in requests) {
-            assertEquals("POST", request.method)
+            assertEquals("POST", request.method())
             for (header in listOf("x-gorgon", "x-medusa", "x-argus", "x-ladon", "x-khronos", "x-helios")) assertNotNull(
                 request.header(header)
             )
             assertTrue(request.header("User-Agent").orEmpty().startsWith("com.phoenix.read/"))
             for (key in listOf("iid", "device_id")) {
-                val value = request.url.queryParameter(key)!!
+                val value = request.url().queryParameter(key)!!
                 assertEquals(if (key == "iid") "444" else "333", value)
                 assertNotEquals(VendorConstants.device[key], value)
-                assertEquals(requests.first().url.queryParameter(key), value)
+                assertEquals(requests.first().url().queryParameter(key), value)
             }
             assertEquals(
-                requests.first().url.queryParameter("cdid"),
-                request.url.queryParameter("cdid"),
+                requests.first().url().queryParameter("cdid"),
+                request.url().queryParameter("cdid"),
             )
             val body = okio.Buffer()
-            request.body!!.writeTo(body)
+            request.body()!!.writeTo(body)
             assertEquals(
                 "123",
                 JSONObject(body.readUtf8())
@@ -664,7 +664,7 @@ class ContentRepositoryTest {
     }
 
     private fun playbackRequestIds(request: Request): List<String> {
-        val body = okio.Buffer().also { request.body!!.writeTo(it) }.readUtf8()
+        val body = okio.Buffer().also { request.body()!!.writeTo(it) }.readUtf8()
         val ids = JSONObject(body).getJSONObject("mixed_video_id_map").getJSONArray("1004")
         return (0 until ids.length()).map { ids.getString(it) }
     }
@@ -755,20 +755,20 @@ class ContentRepositoryTest {
         assertEquals(2, requests.size)
         // 换路重试：host 轮换到备选，设备身份查询参数保持一致；
         // ts/_rticket 参与签名，随整请求重签一并刷新。
-        assertNotEquals(requests[0].url.host, requests[1].url.host)
+        assertNotEquals(requests[0].url().host(), requests[1].url().host())
         assertEquals(
-            requests[0].url.newBuilder().host(requests[1].url.host).removeAllQueryParameters("_rticket").removeAllQueryParameters("ts").build(),
-            requests[1].url.newBuilder().removeAllQueryParameters("_rticket").removeAllQueryParameters("ts").build(),
+            requests[0].url().newBuilder().host(requests[1].url().host()).removeAllQueryParameters("_rticket").removeAllQueryParameters("ts").build(),
+            requests[1].url().newBuilder().removeAllQueryParameters("_rticket").removeAllQueryParameters("ts").build(),
         )
         assertNotEquals(
-            requests[0].url.queryParameter("_rticket"),
-            requests[1].url.queryParameter("_rticket"),
+            requests[0].url().queryParameter("_rticket"),
+            requests[1].url().queryParameter("_rticket"),
         )
         for (request in requests) {
-            assertEquals(request.url.queryParameter("_rticket"), request.header("x-ss-req-ticket"))
-            assertNull(request.url.queryParameter("ts"))
+            assertEquals(request.url().queryParameter("_rticket"), request.header("x-ss-req-ticket"))
+            assertNull(request.url().queryParameter("ts"))
             assertTrue(kotlin.math.abs(request.header("x-khronos")!!.toLong() -
-                request.url.queryParameter("_rticket")!!.toLong() / 1000) <= 1)
+                request.url().queryParameter("_rticket")!!.toLong() / 1000) <= 1)
         }
         assertNotEquals(requests[0].header("x-gorgon"), requests[1].header("x-gorgon"))
         assertNotEquals(requests[0].header("x-medusa"), requests[1].header("x-medusa"))
@@ -776,10 +776,10 @@ class ContentRepositoryTest {
         // 实际连接序号由 PlaybackRetryConnectionTest 验证。
         assertNull(requests[0].header("Connection"))
         assertNull(requests[1].header("Connection"))
-        val first = okio.Buffer().also { requests[0].body!!.writeTo(it) }.readUtf8()
-        val second = okio.Buffer().also { requests[1].body!!.writeTo(it) }.readUtf8()
+        val first = okio.Buffer().also { requests[0].body()!!.writeTo(it) }.readUtf8()
+        val second = okio.Buffer().also { requests[1].body()!!.writeTo(it) }.readUtf8()
         assertEquals(first, second)
-        assertEquals("POST", requests[1].method)
+        assertEquals("POST", requests[1].method())
     }
 
     @Test
@@ -821,7 +821,7 @@ class ContentRepositoryTest {
 
     private fun streamRepository(vararg variants: Triple<Int, String, String>) =
         repository { request ->
-            if (request.url.host == "example.com") {
+            if (request.url().host() == "example.com") {
                 val rows = JSONObject()
                 variants.forEachIndexed { index, (height, codec, url) ->
                     rows.put(
@@ -869,12 +869,12 @@ class ContentRepositoryTest {
     fun byteVc2OnlyFallbackRequestsOneCompatibleModelAndPreservesOtherParameters() {
         val fallbackRequests = mutableListOf<Request>()
         val repo = repository { request ->
-            if (request.url.host != "example.com")
+            if (request.url().host() != "example.com")
                 """{"data":{"123":{"video_model":{"fallback_api":"https://example.com/stream?codec_type=4&token=fixture"}}}}"""
             else {
                 fallbackRequests += request
-                val compatible = request.url.queryParameter("codec_type") == "0" &&
-                    request.url.queryParameter("force_codec") == "h264"
+                val compatible = request.url().queryParameter("codec_type") == "0" &&
+                    request.url().queryParameter("force_codec") == "h264"
                 val codec = if (compatible) "h265" else "bytevc2"
                 """{"video_info":{"data":{"video_list":{"video_1":{"vwidth":1254,"vheight":720,"codec_type":"$codec","main_url":"https://example.com/video"}}}}}"""
             }
@@ -882,7 +882,7 @@ class ContentRepositoryTest {
         val tier = repo.streamLadder("123").renditions.single()
         assertEquals("h265", tier.codec)
         assertEquals(2, fallbackRequests.size)
-        assertEquals("fixture", fallbackRequests.last().url.queryParameter("token"))
+        assertEquals("fixture", fallbackRequests.last().url().queryParameter("token"))
     }
 
     @Test
@@ -890,7 +890,7 @@ class ContentRepositoryTest {
         for ((codec, expectedCalls) in listOf("bytevc2" to 2, "bvc2" to 2, "unknown" to 1, "h265" to 1)) {
             var calls = 0
             val repo = repository { request ->
-                if (request.url.host != "example.com")
+                if (request.url().host() != "example.com")
                     """{"data":{"123":{"video_model":{"fallback_api":"https://example.com/stream"}}}}"""
                 else {
                     calls++
@@ -938,7 +938,7 @@ class ContentRepositoryTest {
     @Test
     fun streamLadderCarriesCodedDimensionsAndCodecs() {
         val repo = repository { request ->
-            if (request.url.host == "example.com") {
+            if (request.url().host() == "example.com") {
                 val rows =
                     JSONObject()
                         .put(
@@ -991,7 +991,7 @@ class ContentRepositoryTest {
                     // 本轮起播放先读 video_tab 新接口；只用例覆盖旧接口行为，统一让它回 100103
                     // 让调用方回退，且不进入用例自己的请求计数。
                     val body =
-                        if (request.url.encodedPath.startsWith("/reading/bookapi/video_tab/"))
+                        if (request.url().encodedPath().startsWith("/reading/bookapi/video_tab/"))
                             """{"code":100103,"message":"PARAM_INVALID","data":null}"""
                         else respond(request)
                     Response.Builder()
@@ -1048,8 +1048,8 @@ class ContentRepositoryTest {
         val payload = rankPayload(2, 5)
         payload.getJSONArray("rankList").getJSONObject(0).put("rank", 23).put("heatText", "5746万热度")
         val repo = repository { request ->
-            assertEquals("/rank/hot-comic-drama", request.url.encodedPath)
-            assertEquals("2", request.url.queryParameter("page"))
+            assertEquals("/rank/hot-comic-drama", request.url().encodedPath())
+            assertEquals("2", request.url().queryParameter("page"))
             """<script>_ROUTER_DATA={"loaderData":{"rank_hot-comic-drama/page":{"rankKey":"comic","pageNum":2,"updatedText":"9月22日已更新"}}};</script>""" +
                 currentRank(payload)
         }
@@ -1132,8 +1132,8 @@ class ContentRepositoryTest {
     @Test
     fun comicHomeUsesDedicatedRankAndRealPagination() {
         val repo = repository { request ->
-            assertEquals("/rank/hot-comic-drama", request.url.encodedPath)
-            assertEquals("2", request.url.queryParameter("page"))
+            assertEquals("/rank/hot-comic-drama", request.url().encodedPath())
+            assertEquals("2", request.url().queryParameter("page"))
             currentRank(rankPayload(2, 2))
         }
         val page = repo.home(2, ContentType.COMIC)
@@ -1206,9 +1206,9 @@ class ContentRepositoryTest {
         }
         repo.search("修仙", 1, ContentType.COMIC)
         repo.search("修仙", 2, ContentType.COMIC)
-        assertEquals("comic-session", requests[1].url.queryParameter("search_id"))
-        assertEquals("comic-cursor", requests[1].url.queryParameter("passback"))
-        assertEquals("25", requests[1].url.queryParameter("offset"))
+        assertEquals("comic-session", requests[1].url().queryParameter("search_id"))
+        assertEquals("comic-cursor", requests[1].url().queryParameter("passback"))
+        assertEquals("25", requests[1].url().queryParameter("offset"))
         assertThrows(SearchSessionExpiredException::class.java) {
             repo.search("重生", 2, ContentType.COMIC)
         }
@@ -1249,7 +1249,7 @@ class ContentRepositoryTest {
     @Test
     fun shortHomeStillUsesCategoryAndStopsOnLastPage() {
         val repo = repository { request ->
-            assertEquals("1", request.url.queryParameter("tab"))
+            assertEquals("1", request.url().queryParameter("tab"))
             """<script>_ROUTER_DATA={"loaderData":{"category_$":{"recommendList":[{"series_id":"456","series_name":"测试短剧"}],"pagination":{"totalPages":1}}}};</script>"""
         }
         val result = repo.home(1, ContentType.SHORT)
@@ -1287,11 +1287,11 @@ class ContentRepositoryTest {
             assertNotNull(request.header("x-gorgon"))
             assertEquals(
                 VendorConstants.device["device_id"],
-                request.url.queryParameter("device_id"),
+                request.url().queryParameter("device_id"),
             )
-            assertEquals("19", request.url.queryParameter("tab_type"))
-            assertEquals(if (requests == 1) "0" else "20", request.url.queryParameter("offset"))
-            assertEquals("修仙", request.url.queryParameter("query"))
+            assertEquals("19", request.url().queryParameter("tab_type"))
+            assertEquals(if (requests == 1) "0" else "20", request.url().queryParameter("offset"))
+            assertEquals("修仙", request.url().queryParameter("query"))
             JSONObject()
                 .put("code", 0)
                 .put("search_tabs", JSONArray().put(searchTab(11, "111")).put(searchTab(19, "999")))
@@ -1327,7 +1327,7 @@ class ContentRepositoryTest {
     fun shortSearchKeepsWebsiteFallback() {
         val paths = mutableListOf<String>()
         val repo = repository { request ->
-            paths += request.url.encodedPath
+            paths += request.url().encodedPath()
             if (paths.size == 1) throw IOException("offline")
             """{"searchList":[{"series_id":"456","series_name":"测试短剧"}]}"""
         }

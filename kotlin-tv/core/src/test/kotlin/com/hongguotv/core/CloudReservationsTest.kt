@@ -15,13 +15,13 @@ class CloudReservationsTest {
             OkHttpClient.Builder()
                 .addInterceptor { chain ->
                     val request = chain.request()
-                    assertEquals("GET", request.method)
-                    assertEquals("/reading/user/subscribe/list/v0/", request.url.encodedPath)
-                    assertEquals("13", request.url.queryParameter("tab_type"))
-                    assertEquals("20", request.url.queryParameter("limit"))
-                    assertEquals("0", request.url.queryParameter("offset"))
+                    assertEquals("GET", request.method())
+                    assertEquals("/reading/user/subscribe/list/v0/", request.url().encodedPath())
+                    assertEquals("13", request.url().queryParameter("tab_type"))
+                    assertEquals("20", request.url().queryParameter("limit"))
+                    assertEquals("0", request.url().queryParameter("offset"))
                     assertEquals("sessionid=test-account", request.header("Cookie"))
-                    categories += request.url.queryParameter("is_online")!!
+                    categories += request.url().queryParameter("is_online")!!
                     Response.Builder()
                         .request(request)
                         .protocol(Protocol.HTTP_1_1)

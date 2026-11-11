@@ -6,8 +6,8 @@
 
 - main 推送、所有 PR 和手动运行 `kotlin-native.yml`：离线发布合约测试、core 测试、lintDebug、assembleDebug，并上传开发 APK 与报告。开发包不能覆盖原正式签名安装。
 - **仅推送 `kotlin-vMAJOR.MINOR.PATCH` 标签触发 `kotlin-release.yml`**，main 推送不发布。fork 不运行正式发布任务，PR 不接触签名 Secrets。
-- 标签必须精确匹配 `kotlin-tv/app/build.gradle.kts` 的默认 versionName；versionCode 手动递增，不按 run_number 重写。当前源码为 0.10.0 / 10。创建标签前提交全部改动并完成评审及设备验证。
-- 正式流水线先检查四个签名 Secrets，再跑 core 测试、Release lint 与正式构建。验证实际 APK 包名、版本、API21、原证书以及 v1 签名后才创建草稿。
+- 标签必须精确匹配 `kotlin-tv/app/build.gradle.kts` 的默认 versionName；versionCode 手动递增，不按 run_number 重写。当前源码为 0.11.1 / 13。创建标签前提交全部改动并完成评审及设备验证。
+- 正式流水线先检查四个签名 Secrets，再跑 core 测试、Release lint 与正式构建。验证实际 APK 包名、版本、API 19、原证书以及 v1 签名后才创建草稿。
 - 产物：APK、该提交完整源码 ZIP（保留 GPL 和第三方许可）、update.json、SHA256SUMS。上传后逐一核对 GitHub 返回的 SHA-256、大小、状态，再发布并验证 latest。未通过时保留草稿供排查，不冒充成功。
 - 全仓库发布任务串行。已发布标签重跑不覆盖附件；同提交草稿可重试。旧版本、未知正式标签格式、低 versionCode、不同提交草稿或额外附件均拒绝发布，需维护者检查，不会自动删除。
 
@@ -40,10 +40,12 @@ python3 scripts/release_tv.py validate kotlin-v0.10.0
 
 安装由 Android 系统确认，不是静默安装。GitHub 不可达、系统无安装器或禁止未知来源时不能完成更新。下载失败不影响已安装应用。
 
-0.10.0 如实声明 minSdk 21，旧 0.9 更新器不识别该元数据，首次需手动同签名覆盖安装，请勿先卸载。最低 Android 5.0 不等于旧电视解码、音频、遥控器及安装流程已验收。公开搜索接口曾返回 HTTP 502 / signature_unavailable；本版改善本地解析和错误处理，不宣称上游搜索、播放已恢复。
+本分支如实声明 minSdk 19，APK 产物名为 `hongguotv-kotlin-<version>-android4.apk`（客户端解析仍兼容历史 `android5.apk` / `android8.apk` 文件名），versionCode 13 / versionName 0.11.1 沿用不变。旧 0.9 / 0.10 客户端不识别 minSdk 19 元数据，且只接受历史文件名，首次需手动同签名覆盖安装，请勿先卸载：卸载会清除本机记录；后续更新可使用新元数据解析器。最低 Android 4.4.2 不等于旧电视的解码、音频、TLS 1.2 握手、遥控器、MultiDex 冷启动及安装流程已验收；本分支未在真实 Android 4.4.2 电视上做实机验证。公开搜索接口曾返回 HTTP 502 / signature_unavailable；本版改善本地解析和错误处理，不宣称上游搜索、播放已恢复。
 
 
 ## 本地签名发布（0.11.0 起）
+
+> 本分支（`feat/android-4.4.2-api19`，API 19）已禁用 `decoder-ffmpeg` 的 native FFmpeg JNI 构建：NDK 27.1.12297006 不支持 API 19，Java 扩展类保留但 `FfmpegLibrary.isAvailable()` 返回 false，Android 4.4.2 回退平台解码器。本分支不再执行下述 `tools/build_native.py` 编译流程，也不再产出四个 ABI 的 FFmpeg 库；以下为固定版本源码编译 FFmpeg AAC 的历史本地发布流程，保留供溯源，详见 `decoder-ffmpeg/README.md`。
 
 Android 5 AAC 兼容库从固定版本源码编译；需 Python 3.12+、curl、make、JDK 17、
 Android SDK 36 / build-tools 36.0.0 和 NDK 27.1.12297006。详见

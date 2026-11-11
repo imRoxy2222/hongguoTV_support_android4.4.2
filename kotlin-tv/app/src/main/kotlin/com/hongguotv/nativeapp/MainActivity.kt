@@ -31,6 +31,15 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+/** android.media.session.PlaybackState is API 21+; mirror its stable int constants for KitKat. */
+private object PlaybackStates {
+    const val STATE_STOPPED = 1
+    const val STATE_PAUSED = 2
+    const val STATE_PLAYING = 3
+    const val STATE_BUFFERING = 6
+    const val STATE_ERROR = 7
+}
+
 class MainActivity : Activity() {
     private val bg = TvStyle.background
     private val surface = TvStyle.surface
@@ -158,7 +167,8 @@ class MainActivity : Activity() {
     private val reservationFilters = mutableListOf<View>()
     private var accountHistoryScope = 0
     private lateinit var cloudAccount: AccountController
-    private lateinit var mediaSession: TvMediaSession
+    /** android.media.session.* is API 21+; KitKat keeps this null and skips system media controls. */
+    private var mediaSession: TvMediaSession? = null
     private val sleepTimer = SleepTimer { android.os.SystemClock.elapsedRealtime() }
     private var sleepStopped = false
     private var playerView: PlayerView? = null
@@ -547,15 +557,18 @@ class MainActivity : Activity() {
             }
         }
         favoriteMonitor = FavoriteMonitor(library, repository) { refreshFavoriteLabels() }
-        mediaSession =
-            TvMediaSession(
-                this,
-                { if (foreground && screen == "player") requestPlayback(true) },
-                { if (foreground && screen == "player") requestPlayback(false) },
-                { position -> if (foreground && screen == "player") seekTo(position) },
-                { direction -> skipEpisode(direction) },
-                { if (foreground && screen == "player") returnToDetail() },
-            )
+        // android.media.session.* only exists from API 21; KitKat skips system media controls.
+        if (Build.VERSION.SDK_INT >= 21) {
+            mediaSession =
+                TvMediaSession(
+                    this,
+                    { if (foreground && screen == "player") requestPlayback(true) },
+                    { if (foreground && screen == "player") requestPlayback(false) },
+                    { position -> if (foreground && screen == "player") seekTo(position) },
+                    { direction -> skipEpisode(direction) },
+                    { if (foreground && screen == "player") returnToDetail() },
+                )
+        }
         message(base(), "正在读取本机记录…")
         loadLibrary()
     }
@@ -4307,24 +4320,24 @@ class MainActivity : Activity() {
 
     private fun syncMediaSession() {
         if (!foreground || screen != "player") {
-            mediaSession.deactivate()
+            mediaSession?.deactivate()
             return
         }
         val data = detail ?: return
         val p = player
         val state =
             when {
-                playError -> android.media.session.PlaybackState.STATE_ERROR
+                playError -> PlaybackStates.STATE_ERROR
                 sleepStopped || !requestedAutoplay || (p != null && !p.playWhenReady) ->
-                    android.media.session.PlaybackState.STATE_PAUSED
+                    PlaybackStates.STATE_PAUSED
                 p == null || !playbackReady || p.playbackState == Player.STATE_BUFFERING ->
-                    android.media.session.PlaybackState.STATE_BUFFERING
+                    PlaybackStates.STATE_BUFFERING
                 p.playbackState == Player.STATE_ENDED ->
-                    android.media.session.PlaybackState.STATE_STOPPED
-                p.isPlaying -> android.media.session.PlaybackState.STATE_PLAYING
-                else -> android.media.session.PlaybackState.STATE_PAUSED
+                    PlaybackStates.STATE_STOPPED
+                p.isPlaying -> PlaybackStates.STATE_PLAYING
+                else -> PlaybackStates.STATE_PAUSED
             }
-        mediaSession.update(
+        mediaSession?.update(
             data.series.title,
             episodeIndex,
             p?.duration?.coerceAtLeast(0) ?: 0,
@@ -4731,7 +4744,7 @@ class MainActivity : Activity() {
         cancelRecovery()
         cancelPrefetchState(keepPrepared)
         relayStopAsync()
-        mediaSession.deactivate()
+        mediaSession?.deactivate()
         tvTools.close()
         val wasForeground = foreground
         foreground = false
@@ -4973,7 +4986,7 @@ class MainActivity : Activity() {
         main.removeCallbacks(tick)
         cancelRecovery()
         cancelPrefetch()
-        mediaSession.deactivate()
+        mediaSession?.deactivate()
         sleepTimer.cancel()
         favoriteMonitor.stop()
         detailAutoplay = false
@@ -5024,7 +5037,7 @@ class MainActivity : Activity() {
         library.close()
         artwork.close()
         releaseCatalogViews()
-        mediaSession.release()
+        mediaSession?.release()
         main.removeCallbacksAndMessages(null)
         io.shutdownNow()
         rankWorker.shutdownNow()

@@ -3,6 +3,8 @@ package com.hongguotv.nativeapp
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
+import androidx.annotation.RequiresApi
 import android.media.MediaCodecList
 import android.media.MediaFormat
 import com.hongguotv.core.Rendition
@@ -15,6 +17,30 @@ import com.hongguotv.core.VideoTracks
  * (persisted across restarts) override the static probe.
  */
 object CodecCapabilities {
+    /** MediaCodecList(int)/getCodecInfos() are API 21+; KitKat uses the indexed legacy API. */
+    private fun decoderInfos(): Array<android.media.MediaCodecInfo> =
+        if (Build.VERSION.SDK_INT >= 21) ModernCodecList.infos() else legacyDecoderInfos()
+
+    /**
+     * The no-arg MediaCodecList constructor and getCodecCount/getCodecInfoAt are no longer in
+     * the public compileSdk 36 stubs, but they still exist on KitKat devices. Resolve them
+     * reflectively so the API 19 probe keeps working; callers catch failures and must never
+     * let a broken ROM probe block playback.
+     */
+    private fun legacyDecoderInfos(): Array<android.media.MediaCodecInfo> {
+        val type = MediaCodecList::class.java
+        val list = type.getConstructor().newInstance()
+        val count = type.getMethod("getCodecCount").invoke(list) as Int
+        val at = type.getMethod("getCodecInfoAt", java.lang.Integer.TYPE)
+        return Array(count) { i -> at.invoke(list, i) as android.media.MediaCodecInfo }
+    }
+
+    @RequiresApi(21)
+    private object ModernCodecList {
+        fun infos(): Array<android.media.MediaCodecInfo> =
+            MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
+    }
+
     private val lessons = DecoderLessons()
     private var prefs: SharedPreferences? = null
     private val verdicts = HashMap<String, Boolean>()
@@ -53,7 +79,7 @@ object CodecCapabilities {
         }
         val verdict =
             runCatching {
-                    MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos.any { info ->
+                    decoderInfos().any { info ->
                         !info.isEncoder &&
                             runCatching {
                                     info
@@ -101,8 +127,7 @@ object CodecCapabilities {
         logged = true
         val lines =
             runCatching {
-                    MediaCodecList(MediaCodecList.REGULAR_CODECS)
-                        .codecInfos
+                    decoderInfos()
                         .filter { !it.isEncoder }
                         .flatMap { info ->
                             listOf(MediaFormat.MIMETYPE_VIDEO_AVC, MediaFormat.MIMETYPE_VIDEO_HEVC)

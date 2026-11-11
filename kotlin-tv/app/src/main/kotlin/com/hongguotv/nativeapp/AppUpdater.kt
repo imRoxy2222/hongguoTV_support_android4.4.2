@@ -455,7 +455,15 @@ class AppUpdater(private val activity: Activity, private val idle: () -> Boolean
                     // 为 Android 6/7 增加标准安装 action；厂商 ROM 是否提供对应入口仍需实机验证。
                     if (!launchInstaller(uri)) {
                         updateStatus("正在准备系统兼容安装…")
-                        work({ runCatching { UpdateInstallSession.submit(activity, apk) } }) { result ->
+                        work({
+                            runCatching {
+                                // PackageInstaller is API 21+; never resolve its class on KitKat.
+                                if (android.os.Build.VERSION.SDK_INT < 21) {
+                                    error("PackageInstaller requires API 21")
+                                }
+                                UpdateInstallSession.submit(activity, apk)
+                            }
+                        }) { result ->
                             if (result.isSuccess) {
                                 updateStatus("已提交系统安装会话，请在系统确认页继续安装")
                             } else {

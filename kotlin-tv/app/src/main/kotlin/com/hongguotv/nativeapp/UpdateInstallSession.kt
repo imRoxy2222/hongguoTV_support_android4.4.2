@@ -15,6 +15,10 @@ import java.io.File
 /** 将已校验安装包交给系统会话，避免依赖厂商安装器组件名及外部文件读取权限。 */
 internal object UpdateInstallSession {
     fun submit(context: Context, apk: File): Int {
+        // PackageInstaller is API 21+. KitKat callers fall back to the intent / file-manager path.
+        if (Build.VERSION.SDK_INT < 21) {
+            throw UnsupportedOperationException("PackageInstaller requires API 21")
+        }
         val installer = context.packageManager.packageInstaller
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(context.packageName)

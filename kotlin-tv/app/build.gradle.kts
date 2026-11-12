@@ -27,8 +27,11 @@ android {
         // permission grant, cleartext HTTP allowed, legacy file access, and no high-targetSdk
         // compatibility shims imposed by vendor firmwares.
         targetSdk = 19
-        versionCode = System.getenv("HONGGUOTV_VERSION_CODE")?.toInt() ?: 17
-        versionName = System.getenv("HONGGUOTV_VERSION_NAME") ?: "0.13.2"
+        // 版本规则见 docs/RELEASE_POLICY.md：versionName = <上游版本>-<N>，
+        // versionCode = 上游 versionCode * 100 + N，N 是该上游版本的第几次 fork 发布。
+        // 由 scripts/next_version.py --write 自动维护，不要手改。
+        versionCode = System.getenv("HONGGUOTV_VERSION_CODE")?.toInt() ?: 1701
+        versionName = System.getenv("HONGGUOTV_VERSION_NAME") ?: "0.13.2-1"
     }
     // Formal publishing always requests all three installable APKs.
     splits {

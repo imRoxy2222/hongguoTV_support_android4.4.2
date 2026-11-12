@@ -45,6 +45,8 @@ internal interface FeedBackend : Closeable {
     /** 仅供无新推荐后的主动恢复；category=null 表示推荐来源。 */
     fun resetRecommendations(category: DramaCategory? = null) = Unit
 
+    fun related(series: Series): List<RelatedWork>? = null
+
     fun detail(series: Series): Detail
 
     fun prepare(detail: Detail): TrialClip
@@ -53,7 +55,17 @@ internal interface FeedBackend : Closeable {
 
     fun trial(series: Series): TrialClip = prepare(detail(series))
 
+    /** Open an exact episode for uninterrupted homepage watching. */
+    fun episode(series: Series, index: Int): TrialClip {
+        val full = detail(series)
+        require(index in full.episodes.indices) { "该集暂不可用" }
+        val prepared = prepare(full.copy(episodes = listOf(full.episodes[index])))
+        return prepared.copy(episodeCount = full.episodes.size, trialEpisodeIndex = index + 1)
+    }
+
     fun preload(series: Series): TrialClip = prefetch(detail(series))
+
+    fun prefetchEpisode(series: Series, index: Int): TrialClip = episode(series, index)
 
     /** 首页展示过一部作品时通知后端，供下次冷启动跳过重复内容。 */
     fun noteDisplayed(
@@ -84,6 +96,8 @@ internal class PublicFeedBackend(
 
     private val closed = java.util.concurrent.atomic.AtomicBoolean(false)
     private val repository = ContentRepository(http, playbackSession = playbackSession)
+    override fun related(series: Series) = RelatedWorks.ordered(series, repository.related(series.id))
+
     private val recommendationAccount = account
     private val cacheIdentity =
         account?.let {
@@ -278,6 +292,25 @@ internal class PublicFeedBackend(
         )
     }
 
+    override fun episode(series: Series, index: Int): TrialClip {
+        val full = detail(series)
+        val id = full.episodes.getOrNull(index) ?: throw java.io.IOException("该集暂不可用")
+        val opened = open(id)
+        return TrialClip(full.copy(episodes = listOf(id)), opened.video,
+            full.episodes.size, opened.track, index + 1)
+    }
+
+    override fun prefetchEpisode(series: Series, index: Int): TrialClip {
+        val full = detail(series)
+        val id = full.episodes.getOrNull(index) ?: throw java.io.IOException("该集暂不可用")
+        val opened = open(id, speculative = true)
+        try {
+            opened.video.read(0, minOf(opened.video.total, 512 * 1024L).toInt())
+            return TrialClip(full.copy(episodes = listOf(id)), opened.video,
+                full.episodes.size, opened.track, index + 1)
+        } catch (error: Throwable) { opened.video.close(); throw error }
+    }
+
     // 后台只轻量准备一次，不消耗前台恢复额度；成功后立即交付视频索引。
     override fun preload(series: Series): TrialClip = trial(series, speculative = true)
 
@@ -315,6 +348,8 @@ internal interface TrialPlayback {
 
     fun remove(seriesId: String) {}
 
+    fun removeClip(clip: TrialClip) {}
+
     fun select(clip: TrialClip, position: Long, autoplay: Boolean): Boolean = false
 
     fun canPrefetch(): Boolean = true
@@ -324,6 +359,8 @@ internal interface TrialPlayback {
     fun resume()
 
     fun restart()
+
+    fun duration(): Long = 0
 
     fun position(): Long
 
@@ -356,7 +393,7 @@ internal fun shouldSelfHealTrial(
         attempts < TRIAL_SELF_HEAL_LIMIT
 
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-internal class Media3TrialPlayback(context: Context) : TrialPlayback {
+internal class Media3TrialPlayback(context: Context, private val speed: Float = 1f, private val frame: VideoFrameMode = VideoFrameMode.FIT) : TrialPlayback {
     private val player =
         ExoPlayer.Builder(context, playbackRenderers(context))
             .setLoadControl(
@@ -380,7 +417,12 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
         PlayerView(context).apply {
             useController = false
             isFocusable = false
-            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+            resizeMode = when (frame) {
+                VideoFrameMode.FIT -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                VideoFrameMode.ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                VideoFrameMode.FILL -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+            }
+            setKeepContentOnPlayerReset(true)
             setShowBuffering(PlayerView.SHOW_BUFFERING_WHEN_PLAYING)
             this.player = this@Media3TrialPlayback.player
         }
@@ -474,6 +516,7 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
     }
 
     private fun play(clip: TrialClip, position: Long, autoplay: Boolean) {
+        surface.setKeepContentOnPlayerReset(true)
         val item = register(clip)
         activeId = key(clip)
         startedAt = android.os.SystemClock.elapsedRealtime()
@@ -482,6 +525,7 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
             position.coerceAtLeast(0),
         )
         player.prepare()
+        player.setPlaybackSpeed(speed)
         player.playWhenReady = autoplay
     }
 
@@ -494,6 +538,11 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
 
     override fun remove(seriesId: String) {
         val id = sources.keys.firstOrNull { it.startsWith("$seriesId:") } ?: return
+        if (id != activeId) sources.remove(id)
+    }
+
+    override fun removeClip(clip: TrialClip) {
+        val id = key(clip)
         if (id != activeId) sources.remove(id)
     }
 
@@ -512,9 +561,13 @@ internal class Media3TrialPlayback(context: Context) : TrialPlayback {
         player.play()
     }
 
+    override fun duration() = player.duration.coerceAtLeast(0)
+
     override fun position() = player.currentPosition.coerceAtLeast(0)
 
     override fun clear() {
+        // Leaving a series must not leave its last frame over another title or an error.
+        surface.setKeepContentOnPlayerReset(false)
         activeId = null
         player.stop()
         player.clearMediaItems()

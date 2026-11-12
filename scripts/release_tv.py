@@ -15,7 +15,7 @@ REPOSITORY = 'N3urda/hongguoTV'
 PACKAGE = 'com.hongguotv.nativeapp'
 CERTIFICATE = '3579f7a8a91bbbc44688db60fb16a5561921784af23fa92f39b849086d76ca98'
 ROOT = Path(__file__).resolve().parents[1]
-NOTES = '搜索结果过滤无关推荐并保留同系列不同季；选中剧名完整换行显示；增加有次数上限的视频解码停滞恢复，排除暂停、缓冲和后台状态。仅维护 APK 发布方式。具体故障盒子的卡顿仍需实机复测。'
+NOTES = '优化首页自动连续播放：切集时保留上一集画面，下一集准备较慢时也避免先清空画面；新增 3× 倍速，支持设为默认播放速度；更换为像素红果电视图标。继续支持 Android 5.0+、原证书覆盖升级及通用、ARM32、ARM64 三种安装包。'
 
 
 def require(condition, message):
@@ -105,6 +105,53 @@ def release_including_draft(tag):
             return found
         require(len(batch) == 100, 'Release missing from authenticated release listing')
         page += 1
+
+
+# Explicit filenames prevent an old single-APK build from being published by accident.
+APK_VARIANTS = (
+    ('universal', 'android5', {'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'}),
+    ('armeabi-v7a', 'arm32-v7a', {'armeabi-v7a'}),
+    ('arm64-v8a', 'arm64-v8a', {'arm64-v8a'}),
+)
+
+
+def validate_apk_abis(path, expected):
+    with zipfile.ZipFile(path) as package:
+        names = package.namelist()
+        actual = {name.split('/')[1] for name in names if name.startswith('lib/') and name.endswith('.so')}
+        require(actual == expected, f'{path.name}: APK ABI mismatch: {actual} != {expected}')
+        require({f'lib/{abi}/libffmpegJNI.so' for abi in expected} <= set(names),
+                f'{path.name}: missing Android 5 AAC native decoder')
+
+
+def prepare_apks(version, code, sdk, out):
+    directory = ROOT / 'kotlin-tv/app/build/outputs/apk/release'
+    buildtools = Path(os.environ['ANDROID_HOME']) / 'build-tools/36.0.0'
+    sources = [(directory / f'app-{variant}-release.apk', suffix, abis)
+               for variant, suffix, abis in APK_VARIANTS]
+    listing = directory / 'output-metadata.json'
+    require(listing.is_file(), 'Missing APK build output metadata')
+    elements = json.loads(listing.read_text()).get('elements', [])
+    for path, _, abis in sources:
+        matches = [item for item in elements if item.get('outputFile') == path.name]
+        filters = [] if len(abis) > 1 else [{'filterType': 'ABI', 'value': next(iter(abis))}]
+        require(len(matches) == 1 and matches[0].get('filters') == filters
+                and matches[0].get('versionCode') == code and matches[0].get('versionName') == version,
+                f'{path.name}: missing or mismatched current build output; use -PreleaseAbis=true')
+    require(all(path.is_file() for path, _, _ in sources),
+            'Release requires universal, ARM32 and ARM64 APKs; build with -PreleaseAbis=true')
+    # Check every package before copying any release assets or creating a draft.
+    for path, _, abis in sources:
+        validate_apk(run(str(buildtools / 'aapt'), 'dump', 'badging', str(path)),
+                     run(str(buildtools / 'apksigner'), 'verify', '--verbose', '--min-sdk-version',
+                         '21', '--print-certs', str(path)), version, code, sdk)
+        validate_apk_abis(path, abis)
+    apks = []
+    for path, suffix, _ in sources:
+        target = out / f'hongguotv-kotlin-{version}-{suffix}.apk'
+        shutil.copy2(path, target)
+        apks.append(target)
+    return apks
 
 
 def prepare(tag):

@@ -6,7 +6,7 @@
 
 - main 推送、所有 PR 和手动运行 `kotlin-native.yml`：离线发布合约测试、core 测试、lintDebug、assembleDebug，并上传开发 APK 与报告。开发包不能覆盖原正式签名安装。
 - **仅推送 `kotlin-vMAJOR.MINOR.PATCH` 标签触发 `kotlin-release.yml`**，main 推送不发布。fork 不运行正式发布任务，PR 不接触签名 Secrets。
-- 标签必须精确匹配 `kotlin-tv/app/build.gradle.kts` 的默认 versionName；versionCode 手动递增，不按 run_number 重写。当前源码为 0.11.1 / 13。创建标签前提交全部改动并完成评审及设备验证。
+- 标签必须精确匹配 `kotlin-tv/app/build.gradle.kts` 的默认 versionName；versionCode 手动递增，不按 run_number 重写。当前源码为 0.13.2 / 17。创建标签前提交全部改动并完成评审及设备验证。
 - 正式流水线先检查四个签名 Secrets，再跑 core 测试、Release lint 与正式构建。验证实际 APK 包名、版本、API 19、原证书以及 v1 签名后才创建草稿。
 - 产物：APK、该提交完整源码 ZIP（保留 GPL 和第三方许可）、update.json、SHA256SUMS。上传后逐一核对 GitHub 返回的 SHA-256、大小、状态，再发布并验证 latest。未通过时保留草稿供排查，不冒充成功。
 - 全仓库发布任务串行。已发布标签重跑不覆盖附件；同提交草稿可重试。旧版本、未知正式标签格式、低 versionCode、不同提交草稿或额外附件均拒绝发布，需维护者检查，不会自动删除。
@@ -64,3 +64,13 @@ release_tv.py prepare() 已改为：APK 不含 libffmpegJNI.so 时放行，若�
 齐全；仅在本地已有 FFmpeg 源码归档时才打进源码 ZIP，不在发布阶段触发外网下载。
 使用已登录的 gh，不需要把私钥或签名密码上传到 GitHub。
 仓库未配置签名 secrets 时，标签触发的云端发布不会成功；本地发布可独立完成。
+
+正式构建由 `scripts/build-kotlin.sh` 和 CI 统一传入 `-PreleaseAbis=true`。本分支只产出一个通用 APK（`app-release.apk` → `hongguotv-kotlin-<版本>-android4.apk`），保留 ARM32、ARM64、x86、x86_64 四种架构；不再发布 android5 / arm32-v7a / arm64-v8a 三个包。`update.json` 指向该通用包，兼容现有自动更新客户端。无需额外的临时 Gradle 脚本。
+
+## 0.13.1 下载加速与无打扰更新
+
+版本信息和 APK 优先通过 `https://ghfast.top/` 代理公开 GitHub Release 文件，失败回退 GitHub 直连。版本检查每源最多 15 秒；APK 每源最多 5 分钟，连接超时 8 秒、无数据读取超时 15 秒。切换源重新下载，取消请求后不再尝试下一源。
+
+仅允许固定 HTTPS 域名，镜像错误页面、长度异常或 SHA-256 不匹配会回退。安装前继续验证实际包名、版本与原安装签名。公开镜像不保证持续可用或国内各地区速度；旧客户端需先安装本版才能使用加速。
+
+后台检查、下载完成和安装结果不主动弹窗；在设置 → 版本与更新中主动安装，仍由系统确认。

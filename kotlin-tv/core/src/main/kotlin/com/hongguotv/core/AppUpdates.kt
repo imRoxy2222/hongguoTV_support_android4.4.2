@@ -16,7 +16,9 @@ data class AppUpdate(val versionCode: Long, val versionName: String, val minSdk:
     fun newerThan(installed: Long, sdk: Int) = versionCode > installed && minSdk <= sdk
     val downloadUrl get() = "$RELEASES/download/$tag/$fileName"
     companion object {
-        const val REPOSITORY = "N3urda/hongguoTV"
+        // 更新源固定为本 fork 的发布仓库，不再读取上游 N3urda/hongguoTV 的 Release：
+        // 两者签名证书不同，上游 APK 即使被发现也会被签名校验拒绝。
+        const val REPOSITORY = "imRoxy2222/hongguoTV_support_android4.4.2"
         const val RELEASES = "https://github.com/$REPOSITORY/releases"
         const val MAX_APK_BYTES = 80L * 1024 * 1024
         fun parse(json: String): AppUpdate {
@@ -27,7 +29,8 @@ data class AppUpdate(val versionCode: Long, val versionName: String, val minSdk:
                 o.getString("tag"), apk.getString("name"), apk.getLong("size"), apk.getString("sha256").lowercase(), o.optString("notes").take(1500))
             require(update.versionCode in 1..Int.MAX_VALUE.toLong() && update.minSdk in 19..100)
             require(update.versionName.matches(Regex("[0-9][0-9A-Za-z.+-]{0,63}")))
-            require(update.tag.matches(Regex("kotlin-v[0-9][0-9A-Za-z.+-]{0,80}")))
+            // 本 fork 的标签前缀是 a44-v（Android 4.4.2）；仍接受上游 kotlin-v 以兼容旧元数据。
+            require(update.tag.matches(Regex("(?:kotlin|a44)-v[0-9][0-9A-Za-z.+-]{0,80}")))
             require(update.fileName.matches(Regex("hongguotv-kotlin-[0-9][0-9A-Za-z.+-]{0,80}-android[458]\\.apk")))
             require(update.size in 1..MAX_APK_BYTES && update.sha256.matches(Regex("[0-9a-f]{64}")))
             return update

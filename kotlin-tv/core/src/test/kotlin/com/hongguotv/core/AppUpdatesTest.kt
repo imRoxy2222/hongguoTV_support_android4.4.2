@@ -87,15 +87,27 @@ class AppUpdatesTest {
         }
     }
     @Test fun downloadUrlUsesOnlyFixedRepositoryAndValidatedNames() {
-        assertEquals("https://github.com/N3urda/hongguoTV/releases/download/kotlin-v0.9.0-build.1/hongguotv-kotlin-0.9.0-build.1-android8.apk", update().downloadUrl)
+        assertEquals("https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases/download/kotlin-v0.9.0-build.1/hongguotv-kotlin-0.9.0-build.1-android8.apk", update().downloadUrl)
         val android4 = json()
         android4.getJSONObject("apk").put("name", "hongguotv-kotlin-0.9.0-build.1-android4.apk")
-        assertEquals("https://github.com/N3urda/hongguoTV/releases/download/kotlin-v0.9.0-build.1/hongguotv-kotlin-0.9.0-build.1-android4.apk", AppUpdate.parse(android4.toString()).downloadUrl)
+        assertEquals("https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases/download/kotlin-v0.9.0-build.1/hongguotv-kotlin-0.9.0-build.1-android4.apk", AppUpdate.parse(android4.toString()).downloadUrl)
         for (value in listOf("../../bad.apk", "evil.apk", "https://example.com/evil.apk", "hongguotv-kotlin-1/2-android8.apk")) {
             val o = json(); o.getJSONObject("apk").put("name", value)
             assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(o.toString()) }
         }
         assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(json().put("tag", "../../other").toString()) }
+    }
+    @Test fun forkTagPrefixIsAcceptedAndOtherPrefixesAreRejected() {
+        val fork = json().put("tag", "a44-v0.13.2")
+        val parsed = AppUpdate.parse(fork.toString())
+        assertEquals("a44-v0.13.2", parsed.tag)
+        assertEquals(
+            "https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases/download/a44-v0.13.2/hongguotv-kotlin-0.9.0-build.1-android8.apk",
+            parsed.downloadUrl,
+        )
+        for (tag in listOf("v0.13.2", "a44-0.13.2", "a44-v", "preview-v1.0.0", "other-v1.0.0")) {
+            assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(json().put("tag", tag).toString()) }
+        }
     }
     @Test fun rejectOtherPackageAndInvalidSchema() {
         assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(json().put("packageName", "other.app").toString()) }

@@ -11,7 +11,9 @@ import zipfile
 import importlib.util
 from pathlib import Path
 
-REPOSITORY = 'N3urda/hongguoTV'
+# 发布目标必须是本仓库：release_tv.py 生成的 update.json 会被本地发布流程写入
+# 当前仓库的 Release，客户端也只读取这一处的 latest/download/update.json。
+REPOSITORY = 'imRoxy2222/hongguoTV_support_android4.4.2'
 PACKAGE = 'com.hongguotv.nativeapp'
 CERTIFICATE = '3579f7a8a91bbbc44688db60fb16a5561921784af23fa92f39b849086d76ca98'
 ROOT = Path(__file__).resolve().parents[1]

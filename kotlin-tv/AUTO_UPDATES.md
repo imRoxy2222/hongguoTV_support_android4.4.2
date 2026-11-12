@@ -1,6 +1,6 @@
 # GitHub 发布与电视应用内更新
 
-唯一发布渠道：[N3urda/hongguoTV Releases](https://github.com/N3urda/hongguoTV/releases)。不再同步到占位的 updates 仓库。旧正式版可能没有 update.json；此时新版客户端提示尚无可用自动更新版本，不代表新版本已发布。
+唯一发布渠道：[imRoxy2222/hongguoTV_support_android4.4.2 Releases](https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases)。应用内“检查更新”只读该仓库的 `releases/latest/download/update.json`，不再查询上游 `N3urda/hongguoTV`。Android 4.4.2 分支由 `fork-release.yml` 在 `a44-vX.Y.Z` 标签上构建 APK 并生成 `update.json`；最新 Release 缺少该文件时，客户端提示尚无可用自动更新版本，不代表新版本已发布。
 
 ## 验证与发布
 

@@ -71,6 +71,7 @@ git push origin a44-v0.13.2
 | `hongguotv-kotlin-<ver>-arm32-v7a.apk` | 仅 ARM32 |
 | `hongguotv-kotlin-<ver>-arm64-v8a.apk` | 仅 ARM64 |
 | `hongguotv-<tag>-source.zip` | 对应提交完整源码（GPL-3.0 要求） |
+| `update.json` | 应用内自更新的元数据，指向 `android4` 通用包 |
 | `SHA256SUMS` | 全部附件的 SHA-256 |
 
 整个过程约 10–20 分钟，Actions 页面可看实时日志。
@@ -114,9 +115,12 @@ git push origin :refs/tags/a44-v0.13.2
 
 1. **签名与上游不同。** 本 fork 用自己的证书，从上游 APK 切过来必须**先卸载**上游版本（会清除本机记录），
    不能覆盖安装；此后本 fork 的版本之间可以正常覆盖升级。
-2. **应用内自动更新仍指向上游** `N3urda/hongguoTV`（`kotlin-tv/core/.../AppUpdates.kt` 的 `REPOSITORY`）。
-   客户端会校验已安装应用签名，因此不会误装上游 APK，只是本 fork 无法自动更新自己。
-   若以后要走自更新，需改该常量指向本仓库、并在 Release 里补 `update.json`（schema 与上游一致）。
+2. **应用内自动更新指向本仓库**（`kotlin-tv/core/.../AppUpdates.kt` 的 `REPOSITORY` =
+   `imRoxy2222/hongguoTV_support_android4.4.2`）。客户端读取 `releases/latest/download/update.json`，
+   该文件由 `fork-release.yml` 每次发布时自动生成，`tag` 前缀为 `a44-v`，`apk.name` 固定为
+   `hongguotv-kotlin-<ver>-android4.apk`。客户端仍会校验 APK 包名、版本、`minSdk` 与已安装签名，
+   因此只有本仓库同证书的正式包能被安装。
+   注意：`AppUpdate.parse` 的 tag 正则同时接受 `kotlin-v` 与 `a44-v`；若标签前缀再次更换，需同步放宽该正则。
 3. **versionCode 跟随上游**（0.13.2 对应 17）。若同一上游版本要重发一次，需先手动递增
    `kotlin-tv/app/build.gradle.kts` 的默认 `versionCode`，否则新包无法覆盖旧包。
 

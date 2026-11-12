@@ -12,7 +12,7 @@
 
 ## 下载与兼容
 
-[发布版本](https://github.com/N3urda/hongguoTV/releases) · [构建说明](kotlin-tv/README.md) · [更新与发布](kotlin-tv/AUTO_UPDATES.md)
+[发布版本](https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases) · [构建说明](kotlin-tv/README.md) · [更新与发布](kotlin-tv/AUTO_UPDATES.md)
 
 本仓库当前处于 `feat/android-4.4.2-api19` fork 分支改造：在保留包名 `com.hongguotv.nativeapp` 与原签名配置的前提下，将最低兼容目标由主线 Android 5.0（API 21）下调为 Android 4.4.2（API 19），并相应降级部分依赖、禁用 native FFmpeg 软解、取消预加载。具体测试结果见 [集成记录](kotlin-tv/MAIN_INTEGRATION.md)（该文为历史主线记录，其中的数字与结论不适用于本分支，详见其中「本分支后续改造」小节），兼容性边界见 [Android 兼容性说明](kotlin-tv/ANDROID_COMPATIBILITY.md)。
 
@@ -22,7 +22,7 @@
 
 ## 反馈与贡献
 
-欢迎大家在使用过程中提出问题、分享建议，一起让项目变得更好。如果遇到使用问题，或有希望增加的功能，可以直接提交 [Issue](https://github.com/N3urda/hongguoTV/issues)；也欢迎通过 [Pull Request](https://github.com/N3urda/hongguoTV/pulls) 贡献修复和改进。
+欢迎大家在使用过程中提出问题、分享建议，一起让项目变得更好。如果遇到使用问题，或有希望增加的功能，可以直接提交 [Issue](https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/issues)；也欢迎通过 [Pull Request](https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/pulls) 贡献修复和改进。
 
 我们会认真阅读并评估每一份反馈与贡献，结合项目定位、实际需求和维护成本，逐步安排修复、完善功能，或审阅并合并合适的代码改动。
 

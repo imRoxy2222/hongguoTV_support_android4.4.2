@@ -32,7 +32,7 @@ python3 scripts/release_tv.py validate kotlin-v0.10.0
 ./kotlin-tv/gradlew -p kotlin-tv :core:test :app:lintDebug :app:assembleDebug
 ```
 
-复现正式构建需 JDK 17、Android SDK 36 / Build Tools 36.0.0，在对应标签源码上配置自己的签名后执行 `scripts/build-kotlin.sh`。自己的签名无法覆盖原正式版；发布流水线仅接受原证书。不要传版本覆盖环境变量到正式流水线，脚本会核对 APK 与标签源码版本一致。首次正式发布前仍需原签名持有人配置 Secrets；本仓库源码本身不证明签名发布已成功。
+复现正式构建需 JDK 17、Android SDK 36 / Build Tools 36.0.0（AGP 8.11.0 另需 35.0.0），在对应标签源码上配置自己的签名后执行 `scripts/build-kotlin.sh`。自己的签名无法覆盖原正式版；发布流水线仅接受原证书。不要传版本覆盖环境变量到正式流水线，脚本会核对 APK 与标签源码版本一致。首次正式发布前仍需原签名持有人配置 Secrets；本仓库源码本身不证明签名发布已成功。
 
 ## 电视上的行为与迁移
 
@@ -58,7 +58,9 @@ Android SDK 36 / build-tools 36.0.0 和 NDK 27.1.12297006。详见
 python3 scripts/release_tv.py publish kotlin-vX.Y.Z --local
 ```
 
-本地发布显式核验 canonical origin、远端 main/tag、原签名、四种 ABI、版本递增和
-上传资产哈希；使用已登录的 gh，不需要把私钥或签名密码上传到 GitHub。
-源码 ZIP 同时包含 FFmpeg 对应源码归档和重编译所需的桥接代码、脚本与许可。
+上述历史流程会显式核验 canonical origin、远端 main/tag、原签名、四种 ABI、版本递增和
+上传资产哈希；当时的源码 ZIP 同时包含 FFmpeg 源码归档与重编译脚本。本分支的
+release_tv.py prepare() 已改为：APK 不含 libffmpegJNI.so 时放行，若存在则要求四种 ABI
+齐全；仅在本地已有 FFmpeg 源码归档时才打进源码 ZIP，不在发布阶段触发外网下载。
+使用已登录的 gh，不需要把私钥或签名密码上传到 GitHub。
 仓库未配置签名 secrets 时，标签触发的云端发布不会成功；本地发布可独立完成。

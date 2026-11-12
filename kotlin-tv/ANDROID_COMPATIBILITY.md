@@ -1,24 +1,25 @@
 # Android 4.4 / 4.4.2 (API 19) compatibility
 
 This branch lowers the minimum SDK of the native APK from API 21 (Android 5.0) to
-API 19 (Android 4.4.2 / KitKat). `compileSdk` and `targetSdk` remain 36, and
-`versionCode` 13 / `versionName` 0.11.1 are unchanged. The package name and the
-original signing configuration are preserved.
+API 19 (Android 4.4.2 / KitKat). `targetSdk` is now **19** as well, so the app runs
+entirely on KitKat-era platform behaviour; `compileSdk` stays 36 so modern build
+tooling and lint still apply. `versionCode` 13 / `versionName` 0.11.1 are unchanged.
+The package name and the original signing configuration are preserved.
 
-This is a **source and build compatibility** target only. It is not a claim that any
-physical Android 4.4.2 TV has been validated. No real-device run has been recorded
-for TLS 1.2 handshakes, certificate chains on old vendor firmware, platform audio
-decoders, remote/focus behaviour, installation, MultiDex cold start or memory use.
-Source-level compatibility is not runtime verification.
+The first real-device run on a MGV2000-UAV5_GD (Android 4.4.2, armeabi-v7a,
+1280x720, 384 MB heap) is recorded under "Real-device verification" below. It found
+and fixed the one blocking defect: KitKat's system trust store predates the CA that
+the media API chains to.
 
 ## Scope and boundaries
 
 - Supported floor: API 19. Devices below API 19 are not a target of this branch.
 - The manifest now uses a custom `.HongguoTvApplication`, a subclass of
   `androidx.multidex.MultiDexApplication`, instead of the library class directly.
-- `compileSdk`/`targetSdk` 36 are kept so modern build tooling and lint still apply;
-  API 19 behaviour is handled at runtime by SDK branches, not by lowering the
-  compile SDK.
+- `targetSdk` is 19: on every system the app keeps install-time permission grants,
+  cleartext HTTP, legacy file access and no high-targetSdk compatibility shims that
+  vendor TV firmwares may impose. `compileSdk` 36 is kept for tooling and lint;
+  API 19 behaviour is handled at runtime by SDK branches.
 - API 21+ APIs (`NetworkCallback`, `NetworkRequest`, `NetworkCapabilities`, the
   default-network callback, `connectivity.allNetworks`, `activeNetwork`,
   `ApplicationInfo.minSdkVersion`) must never be instantiated or referenced on
@@ -52,8 +53,18 @@ Compatibility shims were added so business logic did not need to change:
 - **TLS 1.2 on API 19.** API 19 supports TLS 1.2, but newly created sockets enable
   only TLS 1.0 by default, and modern APIs/CDNs may refuse it. For `SDK_INT < 21`,
   `HongguoTvApplication` installs a custom `Tls12SocketFactory` that enables
-  `TLSv1.2`, `TLSv1.1`, `TLSv1` in order on each `SSLSocket`. Certificate
-  verification and the trust chain are **not** disabled or weakened.
+  `TLSv1.2`, `TLSv1.1`, `TLSv1` in order on each `SSLSocket`.
+- **Bundled public CA supplement (`ModernTrust.kt`).** KitKat's system trust store is
+  the 2013 CA set. The media API chains to `RapidSSL TLS RSA CA G1` rooted at
+  **DigiCert Global Root G2**, which KitKat does not ship, so every HTTPS call failed
+  with `SSLHandshakeException: Trust anchor for certification path not found` and the
+  home screen reported 播放设备注册失败. `res/raw/ca_bundle.pem` (148 current public
+  roots, 217 KB) is loaded into a in-memory `KeyStore` and wrapped in a
+  `SupplementTrustManager`: the platform manager always decides first, and the
+  bundled roots are consulted **only** when the platform rejects the chain. If both
+  reject, the platform's `CertificateException` is rethrown. Chain building, validity
+  windows and hostname verification are unchanged; no private, self-signed or pinned
+  anchor is trusted.
 - **Network callbacks.** `NetworkCompat.register()` branches by SDK: `>= 24` uses
   `registerDefaultNetworkCallback`, `21..23` uses
   `registerNetworkCallback(NetworkRequest...)`, and `< 21` is a direct no-op.
@@ -143,20 +154,47 @@ historical `android5.apk` and `android8.apk` filenames.
 - **Verification status (host-side build checks only).** On this branch,
   `:core:test` (335 tests), `:app:testDebugUnitTest` (218 tests),
   `:app:lintDebug` (0 errors, 92 warnings) and `:app:assembleDebug` all completed
-  successfully. The merged debug manifest declares `minSdkVersion="19"`; the
-  16.18 MB debug APK contains four dex files (MultiDex active) and no `lib/*.so`,
-  consistent with the disabled native FFmpeg build. API 21+ calls are gated by
-  `Build.VERSION.SDK_INT` branches or isolated in `@RequiresApi(21)` holders —
-  no project-wide `NewApi` suppression or lint baseline is used.
+  successfully. The merged debug manifest declares `minSdkVersion="19"` /
+  `targetSdkVersion="19"`; the debug APK contains four dex files (MultiDex active),
+  `res/raw/ca_bundle.pem`, and no `lib/*.so`, consistent with the disabled native
+  FFmpeg build. API 21+ calls are gated by `Build.VERSION.SDK_INT` branches or
+  isolated in `@RequiresApi(21)` holders — no project-wide `NewApi` suppression or
+  lint baseline is used.
 - **Robolectric cannot emulate API 19.** Robolectric 4.14.1 `DefaultSdkProvider`
   starts at `5.0.2_r3` (API 21); `@Config(sdk = [19])` fails with `API level 19 is
   not available`. The compatibility matrices therefore run on API 21/23/26, while
   `Api19BranchTest` forces `Build.VERSION.SDK_INT` to 19 inside an API 21 sandbox
   to exercise the KitKat-only branches. This is branch coverage, not device
   verification.
-- **No real Android 4.4.2 TV has been tested.** Source, unit-test, lint and APK
-  checks do not establish runtime compatibility; the checklist below remains the
-  acceptance criterion.
+
+## Real-device verification
+
+One physical device has been exercised over ADB (2026-11-12):
+
+| Property | Value |
+| --- | --- |
+| Model / firmware | `MGV2000-UAV5_GD`, TCL/移动定制, `p201_iptv` |
+| Android | 4.4.2 (SDK 19), armeabi-v7a |
+| Display | 1280x720 @ 160 dpi |
+| Dalvik heap | 384 MB |
+| Install | `pm install -r` of a chunked `adb push` (see `own_script/adb_push_chunked.sh`); the device's adbd resets long transfers |
+
+Observed results:
+
+- Cold start: MultiDex extracts four secondary dex files and dex2oat compiles them on
+  first launch after an install (~40 s once); later launches reuse them.
+- Device registration, home recommendations, detail, play-address and first frame all
+  succeed after the CA supplement (first frame 0.5–1.7 s). Before the supplement the
+  home screen showed 播放设备注册失败 with
+  `SSLHandshakeException: Trust anchor for certification path not found`.
+- Full-screen playback on this Amlogic box occupies the video layer, so
+  `adb shell screencap` blocks while a video is playing. Screenshots are only
+  reliable on UI screens. `own_script/adb_retry.sh` wraps idempotent ADB calls with
+  reconnect-and-retry because the device's adbd drops connections under load.
+- Not yet exercised on this device: account login, comments, relay/伴机 pairing,
+  auto-update install flow, and the bytevc2 fallback path.
+
+## Required real-device acceptance checklist
 
 ## Required real-device acceptance checklist
 

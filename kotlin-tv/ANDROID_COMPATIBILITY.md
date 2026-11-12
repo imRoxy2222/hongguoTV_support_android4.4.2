@@ -151,15 +151,27 @@ historical `android5.apk` and `android8.apk` filenames.
   Huawei Cloud mirror and Robolectric from the Alibaba Cloud mirror.
 - Do not suppress `NewApi` and do not override dependency minSdk errors to force a
   build. Inspect the merged manifest for minSdk 19 and the APK for `lib/*/*.so`.
+  The single lint exemption in `app/build.gradle.kts` is
+  `ExpiredTargetSdkVersion`, which only encodes the Google Play requirement
+  (`targetSdk` ≥ 33); this branch distributes by sideload to Android 4.4.2 TVs, so
+  the deliberate `targetSdk 19` is not a defect.
 - **Verification status (host-side build checks only).** On this branch,
-  `:core:test` (335 tests), `:app:testDebugUnitTest` (218 tests),
-  `:app:lintDebug` (0 errors, 92 warnings) and `:app:assembleDebug` all completed
+  `:core:test` (335 tests), `:app:testDebugUnitTest` (311 tests),
+  `:app:lintRelease` (0 errors, 95 warnings) and `:app:assembleDebug` all completed
   successfully. The merged debug manifest declares `minSdkVersion="19"` /
   `targetSdkVersion="19"`; the debug APK contains four dex files (MultiDex active),
   `res/raw/ca_bundle.pem`, and no `lib/*.so`, consistent with the disabled native
   FFmpeg build. API 21+ calls are gated by `Build.VERSION.SDK_INT` branches or
   isolated in `@RequiresApi(21)` holders — no project-wide `NewApi` suppression or
-  lint baseline is used.
+  lint baseline is used. View decorations that KitKat's `View` lacks outright
+  (`clipToOutline`, `elevation`, `translationZ`) are routed through
+  `Api21Compat`, so a call site cannot forget the version branch.
+- **Run `:app:lintRelease` before every release tag.** Upstream 0.13.2 added nine
+  direct API 21 view-property calls to `HomeFeedScreen`; they compile against
+  `compileSdk 36`, pass `:app:testDebugUnitTest` and `:app:assembleDebug`, and throw
+  `NoSuchMethodError` on a real API 19 device. Lint is the only host-side check that
+  catches this class of upstream regression, which is why it must stay on the
+  release path rather than being replaced by a baseline.
 - **Robolectric cannot emulate API 19.** Robolectric 4.14.1 `DefaultSdkProvider`
   starts at `5.0.2_r3` (API 21); `@Config(sdk = [19])` fails with `API level 19 is
   not available`. The compatibility matrices therefore run on API 21/23/26, while

@@ -10,6 +10,27 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.*
 
+/**
+ * TextView.showSoftInputOnFocus is public only from API 21. KitKat exposes it as a hidden
+ * method under one of two historical names; resolve it reflectively and never crash when a
+ * vendor ROM removed both. TV keyboards still toggle through InputMethodManager on KitKat.
+ */
+private fun android.widget.TextView.setSoftInputOnFocusCompat(show: Boolean) {
+    if (android.os.Build.VERSION.SDK_INT >= 21) {
+        showSoftInputOnFocus = show
+        return
+    }
+    for (name in listOf("setShowSoftInputOnFocus", "setSoftInputShownOnFocus")) {
+        val applied = runCatching {
+            android.widget.TextView::class.java
+                .getMethod(name, java.lang.Boolean.TYPE)
+                .invoke(this, show)
+            true
+        }.getOrDefault(false)
+        if (applied) return
+    }
+}
+
 /** Remote-first search workspace; the existing discovery filters remain a separate screen. */
 internal class TvSearchPanel(
     context: Context,
@@ -30,7 +51,7 @@ internal class TvSearchPanel(
             setHintTextColor(TvStyle.muted)
             isSingleLine = true
             filters = arrayOf(InputFilter.LengthFilter(80))
-            showSoftInputOnFocus = false
+            setSoftInputOnFocusCompat(false)
             imeOptions = android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH
             setText(initial)
             setSelection(text.length)
@@ -71,7 +92,7 @@ internal class TvSearchPanel(
         }
 
     private fun hideKeyboard() {
-        input.showSoftInputOnFocus = false
+        input.setSoftInputOnFocusCompat(false)
         (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
             .hideSoftInputFromWindow(input.windowToken, 0)
     }
@@ -148,7 +169,7 @@ internal class TvSearchPanel(
                 action("清空") { input.setText("") },
                 searchButton,
                 action("中文输入") {
-                    input.showSoftInputOnFocus = true
+                    input.setSoftInputOnFocusCompat(true)
                     input.requestFocus()
                     (context.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager)
                         .showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)

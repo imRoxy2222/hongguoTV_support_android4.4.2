@@ -30,7 +30,6 @@ import com.hongguotv.core.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
-@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 /** android.media.session.PlaybackState is API 21+; mirror its stable int constants for KitKat. */
 private object PlaybackStates {
     const val STATE_STOPPED = 1
@@ -40,6 +39,7 @@ private object PlaybackStates {
     const val STATE_ERROR = 7
 }
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : Activity() {
     private val bg = TvStyle.background
     private val surface = TvStyle.surface
@@ -546,7 +546,7 @@ class MainActivity : Activity() {
             runCatching {
                 if (android.os.Build.VERSION.SDK_INT >= 24)
                     connectivity.registerDefaultNetworkCallback(callback)
-                else
+                else if (android.os.Build.VERSION.SDK_INT >= 21)
                     connectivity.registerNetworkCallback(
                         android.net.NetworkRequest.Builder()
                             .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -3022,7 +3022,13 @@ class MainActivity : Activity() {
             view.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> applyVideoRotation() }
             view.post { if (playerView === view) applyVideoRotation() }
             persistentTime = text("", 12f, white)
-            persistentBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 1000; progressTintList = android.content.res.ColorStateList.valueOf(accent) }
+            persistentBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+                max = 1000
+                // Progress tinting is API 21+; KitKat keeps the platform progress color.
+                if (Build.VERSION.SDK_INT >= 21) {
+                    progressTintList = android.content.res.ColorStateList.valueOf(accent)
+                }
+            }
             persistentProgress = column().apply {
                 isFocusable = false
                 importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
@@ -3073,8 +3079,11 @@ class MainActivity : Activity() {
             progressBar =
                 ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
                     max = 1000
-                    progressTintList = android.content.res.ColorStateList.valueOf(accent)
-                    progressBackgroundTintList = android.content.res.ColorStateList.valueOf(surface)
+                    // Progress tinting is API 21+; KitKat keeps the platform progress color.
+                    if (Build.VERSION.SDK_INT >= 21) {
+                        progressTintList = android.content.res.ColorStateList.valueOf(accent)
+                        progressBackgroundTintList = android.content.res.ColorStateList.valueOf(surface)
+                    }
                 }
             hud.addView(progressBar, lp(-1, dp(4)))
             hud.addView(
@@ -4320,7 +4329,7 @@ class MainActivity : Activity() {
 
     private fun syncMediaSession() {
         if (!foreground || screen != "player") {
-            mediaSession?.deactivate()
+            if (Build.VERSION.SDK_INT >= 21) mediaSession?.deactivate()
             return
         }
         val data = detail ?: return
@@ -4337,16 +4346,18 @@ class MainActivity : Activity() {
                 p.isPlaying -> PlaybackStates.STATE_PLAYING
                 else -> PlaybackStates.STATE_PAUSED
             }
-        mediaSession?.update(
-            data.series.title,
-            episodeIndex,
-            p?.duration?.coerceAtLeast(0) ?: 0,
-            currentPosition(),
-            library.playbackSpeed,
-            state,
-            episodeIndex > 0,
-            episodeIndex < data.episodes.lastIndex,
-        )
+        if (Build.VERSION.SDK_INT >= 21) {
+            mediaSession?.update(
+                data.series.title,
+                episodeIndex,
+                p?.duration?.coerceAtLeast(0) ?: 0,
+                currentPosition(),
+                library.playbackSpeed,
+                state,
+                episodeIndex > 0,
+                episodeIndex < data.episodes.lastIndex,
+            )
+        }
     }
 
     private fun stopForSleep() {
@@ -4744,7 +4755,7 @@ class MainActivity : Activity() {
         cancelRecovery()
         cancelPrefetchState(keepPrepared)
         relayStopAsync()
-        mediaSession?.deactivate()
+        if (Build.VERSION.SDK_INT >= 21) mediaSession?.deactivate()
         tvTools.close()
         val wasForeground = foreground
         foreground = false
@@ -4986,7 +4997,7 @@ class MainActivity : Activity() {
         main.removeCallbacks(tick)
         cancelRecovery()
         cancelPrefetch()
-        mediaSession?.deactivate()
+        if (Build.VERSION.SDK_INT >= 21) mediaSession?.deactivate()
         sleepTimer.cancel()
         favoriteMonitor.stop()
         detailAutoplay = false
@@ -5026,7 +5037,8 @@ class MainActivity : Activity() {
     override fun onDestroy() {
         generation++
         cancelWork()
-        if (networkRegistered) networkCallback?.let { connectivity.unregisterNetworkCallback(it) }
+        if (networkRegistered && Build.VERSION.SDK_INT >= 21)
+            networkCallback?.let { connectivity.unregisterNetworkCallback(it) }
         social.destroy()
         favoriteMonitor.destroy()
         tvTools.destroy()
@@ -5037,7 +5049,7 @@ class MainActivity : Activity() {
         library.close()
         artwork.close()
         releaseCatalogViews()
-        mediaSession?.release()
+        if (Build.VERSION.SDK_INT >= 21) mediaSession?.release()
         main.removeCallbacksAndMessages(null)
         io.shutdownNow()
         rankWorker.shutdownNow()

@@ -301,11 +301,14 @@ class TvTools(private val activity: Activity) {
                             id = View.generateViewId()
                             text = key
                             minHeight = dp(42)
-                            backgroundTintList =
-                                android.content.res.ColorStateList(
-                                    arrayOf(intArrayOf(android.R.attr.state_focused), intArrayOf()),
-                                    intArrayOf(TvStyle.accent, TvStyle.surface),
-                                )
+                            // View.setBackgroundTintList is API 21+; KitKat keeps the plain drawable.
+                            if (android.os.Build.VERSION.SDK_INT >= 21) {
+                                backgroundTintList =
+                                    android.content.res.ColorStateList(
+                                        arrayOf(intArrayOf(android.R.attr.state_focused), intArrayOf()),
+                                        intArrayOf(TvStyle.accent, TvStyle.surface),
+                                    )
+                            }
                             setOnClickListener {
                                 when (key) {
                                     "清空" -> {

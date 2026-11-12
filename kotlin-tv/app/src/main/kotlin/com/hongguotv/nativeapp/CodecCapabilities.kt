@@ -41,6 +41,47 @@ object CodecCapabilities {
             MediaCodecList(MediaCodecList.REGULAR_CODECS).codecInfos
     }
 
+    /**
+     * VideoCapabilities is API 21+. On KitKat only the declared MIME support can be
+     * checked; persisted runtime failures still override an over-optimistic result.
+     */
+    private fun legacySupports(type: String): Boolean =
+        decoderInfos().any { info ->
+            !info.isEncoder && runCatching { info.getCapabilitiesForType(type) }.isSuccess
+        }
+
+    @RequiresApi(21)
+    private fun modernSupports(type: String, width: Int, height: Int): Boolean =
+        decoderInfos().any { info ->
+            !info.isEncoder &&
+                runCatching {
+                    info.getCapabilitiesForType(type).videoCapabilities?.isSizeSupported(width, height) == true
+                }.getOrDefault(false)
+        }
+
+    private fun legacyCapabilityLines(): List<String> =
+        decoderInfos()
+            .filter { !it.isEncoder }
+            .flatMap { info ->
+                listOf(MediaFormat.MIMETYPE_VIDEO_AVC, MediaFormat.MIMETYPE_VIDEO_HEVC)
+                    .filter { type -> runCatching { info.getCapabilitiesForType(type) }.isSuccess }
+                    .map { type -> "${info.name} $type (API 19: MIME declared)" }
+            }
+
+    @RequiresApi(21)
+    private fun modernCapabilityLines(): List<String> =
+        decoderInfos()
+            .filter { !it.isEncoder }
+            .flatMap { info ->
+                listOf(MediaFormat.MIMETYPE_VIDEO_AVC, MediaFormat.MIMETYPE_VIDEO_HEVC)
+                    .filter { type -> runCatching { info.getCapabilitiesForType(type) }.isSuccess }
+                    .map { type ->
+                        val video = info.getCapabilitiesForType(type).videoCapabilities
+                            ?: return@map "${info.name} $type (no VideoCapabilities)"
+                        "${info.name} $type up to ${video.supportedWidths.upper}x${video.supportedHeights.upper}"
+                    }
+            }
+
     private val lessons = DecoderLessons()
     private var prefs: SharedPreferences? = null
     private val verdicts = HashMap<String, Boolean>()
@@ -79,16 +120,8 @@ object CodecCapabilities {
         }
         val verdict =
             runCatching {
-                    decoderInfos().any { info ->
-                        !info.isEncoder &&
-                            runCatching {
-                                    info
-                                        .getCapabilitiesForType(type)
-                                        .videoCapabilities
-                                        .isSizeSupported(width, height)
-                                }
-                                .getOrDefault(false)
-                    }
+                    if (Build.VERSION.SDK_INT >= 21) modernSupports(type, width, height)
+                    else legacySupports(type)
                 }
                 .getOrDefault(true) // A broken ROM probe must not block playback.
         synchronized(verdicts) { verdicts[key] = verdict }
@@ -127,18 +160,8 @@ object CodecCapabilities {
         logged = true
         val lines =
             runCatching {
-                    decoderInfos()
-                        .filter { !it.isEncoder }
-                        .flatMap { info ->
-                            listOf(MediaFormat.MIMETYPE_VIDEO_AVC, MediaFormat.MIMETYPE_VIDEO_HEVC)
-                                .filter { type ->
-                                    runCatching { info.getCapabilitiesForType(type) }.isSuccess
-                                }
-                                .map { type ->
-                                    val video = info.getCapabilitiesForType(type).videoCapabilities
-                                    "${info.name} $type up to ${video.supportedWidths.upper}x${video.supportedHeights.upper}"
-                                }
-                        }
+                    if (Build.VERSION.SDK_INT >= 21) modernCapabilityLines()
+                    else legacyCapabilityLines()
                 }
                 .getOrNull() ?: return
         android.util.Log.i("HongguoTV", "Decoder capabilities: ${lines.joinToString("; ")}")

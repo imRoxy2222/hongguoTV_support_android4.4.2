@@ -7,6 +7,7 @@ import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
 import android.os.Build
+import androidx.annotation.RequiresApi
 import java.net.Inet4Address
 import java.net.NetworkInterface
 
@@ -38,6 +39,7 @@ internal object NetworkCompat {
         else manager.activeNetworkInfo?.isConnected == true
 
     @Suppress("DEPRECATION")
+    @RequiresApi(21) // getAllNetworks/getNetworkInfo(Network) do not exist on KitKat.
     private fun active(manager: ConnectivityManager): Network? {
         if (Build.VERSION.SDK_INT >= 23) return manager.activeNetwork
         val current = manager.activeNetworkInfo?.takeIf { it.isConnected } ?: return null

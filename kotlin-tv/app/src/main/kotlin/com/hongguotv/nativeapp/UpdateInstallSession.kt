@@ -72,7 +72,10 @@ class UpdateInstallResultActivity : Activity() {
             val opened = confirmation != null && runCatching { startActivity(confirmation) }.isSuccess
             if (!opened) {
                 preferences.edit().remove("active").apply()
-                runCatching { packageManager.packageInstaller.abandonSession(id) }
+                // PackageInstaller is API 21+; a KitKat result intent must never resolve it.
+                if (Build.VERSION.SDK_INT >= 21) {
+                    runCatching { packageManager.packageInstaller.abandonSession(id) }
+                }
                 val message = "系统安装会话无法打开确认页，请继续使用 U 盘安装"
                 preferences.edit().putString("result_text", message).apply()
                 Toast.makeText(this, message, Toast.LENGTH_LONG).show()

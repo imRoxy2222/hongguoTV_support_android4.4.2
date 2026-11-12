@@ -1,0 +1,22 @@
+<resources>
+    <!--
+      From API 21 the app keeps its original Material appearance. Overriding only
+      the *Core styles lets AppTheme / TvDialogTheme (declared in values/) resolve
+      to Material parents without duplicating every shared item.
+    -->
+    <style name="AppThemeCore" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowActionModeOverlay">true</item>
+        <item name="android:colorAccent">#FF7844</item>
+        <item name="android:windowBackground">#070A0F</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:alertDialogTheme">@style/TvDialogTheme</item>
+    </style>
+    <style name="TvDialogThemeCore" parent="android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#FF7844</item>
+        <item name="android:windowBackground">@drawable/tv_dialog_surface</item>
+        <item name="android:textColorPrimary">#F2F4F8</item>
+        <item name="android:textColorSecondary">#A8B2C4</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+    </style>
+</resources>

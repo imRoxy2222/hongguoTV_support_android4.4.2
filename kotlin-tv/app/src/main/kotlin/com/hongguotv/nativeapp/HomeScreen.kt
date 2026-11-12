@@ -325,8 +325,11 @@ class HomeScreen(
                                 max = 100
                                 progress = entry?.progress ?: 0
                                 visibility = if (entry?.progress == null) INVISIBLE else VISIBLE
-                                progressTintList =
-                                    android.content.res.ColorStateList.valueOf(accent)
+                                // Progress tinting is API 21+; KitKat keeps the platform color.
+                                if (android.os.Build.VERSION.SDK_INT >= 21) {
+                                    progressTintList =
+                                        android.content.res.ColorStateList.valueOf(accent)
+                                }
                             }
                     view.addView(title)
                     view.addView(badge)

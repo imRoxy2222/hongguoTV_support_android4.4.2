@@ -9,8 +9,10 @@ import android.media.session.MediaSession
 import android.media.session.PlaybackState
 import android.os.Handler
 import android.os.Looper
+import androidx.annotation.RequiresApi
 
 /** Foreground-only session; no background playback service or extra runtime dependency. */
+@RequiresApi(21) // android.media.session.* does not exist on KitKat; MainActivity never constructs this there.
 class TvMediaSession(
     context: Context,
     onPlay: () -> Unit,

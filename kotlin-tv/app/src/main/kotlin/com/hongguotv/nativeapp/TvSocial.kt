@@ -26,7 +26,8 @@ class TvSocial(
     private val main = Handler(Looper.getMainLooper())
     private val worker = Executors.newFixedThreadPool(2)
     private val timed = TimedComments()
-    private val prefs = activity.getSharedPreferences("social", 0)
+    /** 与设置页「弹幕」分类共用同一份偏好，任一处修改都会成为下次播放的默认值。 */
+    private val danmaku = DanmakuPreferences(activity)
     private var active = false
     private var key: Pair<String, String>? = null
     private var scope: RequestScope? = null
@@ -56,7 +57,7 @@ class TvSocial(
                 if (
                     p != null &&
                         next != null &&
-                        prefs.getBoolean("enabled", true) &&
+                        danmaku.enabled &&
                         !loading &&
                         p.duration in 1..86400000 &&
                         p.currentPosition < p.duration &&
@@ -100,6 +101,21 @@ class TvSocial(
         dialog?.dismiss()
         dialog = null
         key = null
+    }
+
+    /**
+     * 设置页改动同一份弹幕偏好后调用：按新字号、行数与速度重排已加载的弹幕。
+     * 开关、不透明度、区域在绘制时实时读取，这里只补需要重新排程的部分。
+     */
+    fun preferencesChanged() {
+        val view = overlay ?: return
+        view.setRows(
+            pages.values.flatMap { page ->
+                val rows = page.getJSONArray("items")
+                (0 until rows.length()).map { rows.getJSONObject(it) }
+            }
+        )
+        view.invalidate()
     }
 
     fun destroy() {
@@ -207,46 +223,39 @@ class TvSocial(
             body.addView(content)
             return content
         }
-        option({ "弹幕：${if(prefs.getBoolean("enabled",true)) "开" else "关"}" }) {
-            prefs.edit().putBoolean("enabled", !prefs.getBoolean("enabled", true)).apply()
+        option({ "弹幕：${if (danmaku.enabled) "开" else "关"}" }) { danmaku.enabled = !danmaku.enabled }
+        option({ "字号：${danmaku.font}" }) {
+            danmaku.font =
+                if (danmaku.font >= DanmakuPreferences.MAX_FONT) DanmakuPreferences.MIN_FONT
+                else danmaku.font + 4
         }
-        option({ "字号：${prefs.getInt("font",24)}" }) {
-            val n = prefs.getInt("font", 24)
-            prefs.edit().putInt("font", if (n >= 32) 20 else n + 4).apply()
+        option({ "密度：${danmaku.densityLabel}" }) {
+            val steps = listOf(4, DanmakuPreferences.AUTO_LANES, 12)
+            val current = steps.indexOf(danmaku.lanes)
+            danmaku.lanes = steps[(current + 1) % steps.size]
         }
-        option({
-            val lanes = prefs.getInt("lanes", 0)
-            "密度：${when (lanes) { 4 -> "少"; 0 -> "标准（自动）"; 12 -> "多"; else -> "自定义 $lanes 行" }}"
-        }) {
-            val steps = listOf(4, 0, 12)
-            val current = steps.indexOf(prefs.getInt("lanes", 0))
-            prefs.edit().putInt("lanes", steps[(current + 1) % steps.size]).apply()
+        option({ "区域：${danmaku.areaLabel}" }) {
+            val order = DanmakuPreferences.AREA_ORDER
+            danmaku.area = order[(order.indexOf(danmaku.area) + 1) % order.size]
         }
-        option({ "区域：${when (prefs.getString("area", "top")) { "middle" -> "中部"; "bottom" -> "下部"; "full" -> "全屏"; else -> "上部" }}" }) {
-            val order = listOf("top", "middle", "bottom", "full")
-            val next = order[(order.indexOf(prefs.getString("area", "top")) + 1) % order.size]
-            prefs.edit().putString("area", next).apply()
-        }
-        option({ "相同弹幕合并：${if (prefs.getBoolean("merge", true)) "开" else "关"}" }) {
-            prefs.edit().putBoolean("merge", !prefs.getBoolean("merge", true)).apply()
+        option({ "相同弹幕合并：${if (danmaku.merge) "开" else "关"}" }) {
+            danmaku.merge = !danmaku.merge
         }
         val advanced = section("更多设置")
-        option({ "精确行数：${if (prefs.getInt("lanes", 0) > 0) "${prefs.getInt("lanes", 0)} 行" else "自动"}" }, advanced) {
+        option({ "精确行数：${if (danmaku.lanes > 0) "${danmaku.lanes} 行" else "自动"}" }, advanced) {
             // 0 表示按屏幕高度自动计算；其余为固定值，避免旧版本只有 1–4 行可选。
-            val steps = listOf(0, 4, 6, 8, 10, 12)
-            val index = steps.indexOf(prefs.getInt("lanes", 0)).let { if (it >= 0) it else 0 }
-            prefs.edit().putInt("lanes", steps[(index + 1) % steps.size]).apply()
+            val steps = DanmakuPreferences.LANE_ORDER
+            val index = steps.indexOf(danmaku.lanes).let { if (it >= 0) it else 0 }
+            danmaku.lanes = steps[(index + 1) % steps.size]
         }
-        option({ "不透明度：${prefs.getInt("alpha", 85)}%" }, advanced) {
-            val steps = listOf(60, 75, 85, 100)
-            val next = steps[(steps.indexOf(prefs.getInt("alpha", 85)) + 1) % steps.size]
-            prefs.edit().putInt("alpha", next).apply()
+        option({ "不透明度：${danmaku.alpha}%" }, advanced) {
+            val steps = DanmakuPreferences.ALPHA_ORDER
+            danmaku.alpha = steps[(steps.indexOf(danmaku.alpha) + 1) % steps.size]
         }
-        option({ "速度：${if(prefs.getInt("travel",12000)==12000) "慢速（12 秒）" else "标准（9 秒）"}" }, advanced) {
-            prefs
-                .edit()
-                .putInt("travel", if (prefs.getInt("travel", 12000) == 12000) 9000 else 12000)
-                .apply()
+        option({ "速度：${danmaku.speedLabel}" }, advanced) {
+            danmaku.travel =
+                if (danmaku.travel == DanmakuPreferences.TRAVEL_SLOW) DanmakuPreferences.TRAVEL_FAST
+                else DanmakuPreferences.TRAVEL_SLOW
         }
         val troubleshooting = section("弹幕排查")
         troubleshooting.addView(
@@ -474,26 +483,26 @@ class TvSocial(
         private var scheduled: List<ScheduledDanmaku> = emptyList()
 
         private fun areaTop(): Int =
-            when (prefs.getString("area", "top")) {
-                "middle" -> dp(220)
-                "bottom" -> dp(420)
-                "full" -> dp(65)
+            when (danmaku.area) {
+                DanmakuPreferences.AREA_MIDDLE -> dp(220)
+                DanmakuPreferences.AREA_BOTTOM -> dp(420)
                 else -> dp(65)
             }
 
         private fun areaHeight(): Int {
             val top = areaTop()
             val full = height - top
-            return when (prefs.getString("area", "top")) {
-                "middle", "bottom" -> (full * 0.6f).toInt()
+            return when (danmaku.area) {
+                DanmakuPreferences.AREA_MIDDLE, DanmakuPreferences.AREA_BOTTOM ->
+                    (full * 0.6f).toInt()
                 else -> full
             }
         }
 
         fun setRows(values: List<JSONObject>) {
-            val travel = prefs.getInt("travel", 12000)
-            val textSize = dp(prefs.getInt("font", 24))
-            val configured = prefs.getInt("lanes", 0)
+            val travel = danmaku.travel
+            val textSize = dp(danmaku.font)
+            val configured = danmaku.lanes
             val lanes =
                 if (configured > 0) configured
                 else DanmakuLayout.laneCountFor(areaHeight(), textSize, 0)
@@ -509,7 +518,7 @@ class TvSocial(
                     items = items,
                     lanes = lanes,
                     travelMs = travel,
-                    merge = prefs.getBoolean("merge", true),
+                    merge = danmaku.merge,
                 )
             invalidate()
         }
@@ -523,11 +532,11 @@ class TvSocial(
         override fun onDraw(canvas: Canvas) {
             super.onDraw(canvas)
             val p = player() ?: return
-            if (!active || !prefs.getBoolean("enabled", true)) return
+            if (!active || !danmaku.enabled) return
             val now = p.currentPosition
-            val travel = prefs.getInt("travel", 12000).coerceAtLeast(1)
-            paint.textSize = dp(prefs.getInt("font", 24)).toFloat()
-            val alpha = (prefs.getInt("alpha", 85).coerceIn(20, 100) * 255 / 100)
+            val travel = danmaku.travel.coerceAtLeast(1)
+            paint.textSize = dp(danmaku.font).toFloat()
+            val alpha = (danmaku.alpha * 255 / 100)
             val lineHeight = (paint.textSize + dp(12)).toInt()
             val top = areaTop()
             // 只绘制当前有效的弹幕，不因缓存总量大而按索引丢弃。

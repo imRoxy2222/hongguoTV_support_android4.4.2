@@ -172,19 +172,24 @@ class MainActivity : Activity() {
     private val sleepTimer = SleepTimer { android.os.SystemClock.elapsedRealtime() }
     private var sleepStopped = false
     private var playerView: PlayerView? = null
-    private val social by lazy {
-        TvSocial(
-            this,
-            { player },
-            {
-                if (screen == "player" || screen == "detail")
-                    detail?.let { data ->
-                        data.episodes.getOrNull(episodeIndex)?.let { data.series.id to it }
-                    }
-                else null
-            },
-        )
-    }
+    // 独立持有 lazy，设置页只在播放器已创建时才通知它重排弹幕。
+    private val socialHolder =
+        lazy {
+            TvSocial(
+                this,
+                { player },
+                {
+                    if (screen == "player" || screen == "detail")
+                        detail?.let { data ->
+                            data.episodes.getOrNull(episodeIndex)?.let { data.series.id to it }
+                        }
+                    else null
+                },
+            )
+        }
+    private val social by socialHolder
+    /** 播放器「弹幕设置」与设置页「弹幕」共用的持久化偏好。 */
+    private val danmakuPreferences by lazy { DanmakuPreferences(this) }
     private lateinit var favoriteMonitor: FavoriteMonitor
     private val favoriteBadges = mutableMapOf<String, TextView>()
     private var favoriteStatus: TextView? = null
@@ -280,7 +285,8 @@ class MainActivity : Activity() {
     private var startupApplied = false
     private var settingsAccountStatus: TextView? = null
     private var settingsGroup = 0
-    private val settingsPositions = IntArray(4)
+    // 与设置页左侧分类数一致：播放 / 弹幕 / 外观与操作 / 账户 / 应用与更新。
+    private val settingsPositions = IntArray(5)
     private var settingsSidebar = emptyList<View>()
     private var settingsRows = emptyList<View>()
     private lateinit var librarySources: LibrarySources
@@ -2290,7 +2296,7 @@ class MainActivity : Activity() {
         }
         scroll.addView(content, android.widget.FrameLayout.LayoutParams(-1, -2))
         layout.addView(scroll, lp(0, -1).apply { weight = 1f })
-        val categories = listOf("播放", "外观与操作", "账户", "应用与更新")
+        val categories = listOf("播放", "弹幕", "外观与操作", "账户", "应用与更新")
         val entries = mutableListOf<View>()
         fun setting(label: String, action: () -> Unit): TextView {
             val view = SettingsValueView(this).apply {
@@ -2339,6 +2345,33 @@ class MainActivity : Activity() {
             content.addView(view, lp(-1, -2).apply { bottomMargin = dp(8) })
             entries += view
         }
+        // 播放器已创建时同步重排已加载弹幕；未创建则下次播放直接读取新偏好。
+        fun danmakuChanged() {
+            if (socialHolder.isInitialized()) social.preferencesChanged()
+        }
+        /** 单选设置行：选项写入弹幕偏好，并用最新值刷新自身标签。 */
+        fun pick(
+            label: String,
+            options: List<String>,
+            selected: () -> Int,
+            write: (Int) -> Unit,
+        ): TextView {
+            lateinit var view: TextView
+            view =
+                setting(label) {
+                    tvTools.choose(
+                        label.substringBefore("  ·  "),
+                        options,
+                        view,
+                        { choice ->
+                            write(choice)
+                            danmakuChanged()
+                        },
+                        selected = selected(),
+                    )
+                }
+            return view
+        }
         lateinit var render: (Int) -> Unit
         val buttons = categories.mapIndexed { index, title ->
             button(title, onClick = {
@@ -2381,6 +2414,82 @@ class MainActivity : Activity() {
                     toggle("跨季自动连播（需开启自动连播）", library.seasonAutoplay) { library.seasonAutoplay = it }
                 }
                 1 -> {
+                    content.addView(
+                        text(
+                                "播放器菜单的「弹幕设置」与此处共用同一份偏好，修改后立即成为每次播放的默认显示方式。",
+                                14f,
+                                muted,
+                            )
+                            .apply { setPadding(0, 0, 0, dp(12)) }
+                    )
+                    toggle("默认显示弹幕", danmakuPreferences.enabled) {
+                        danmakuPreferences.enabled = it
+                        danmakuChanged()
+                    }
+                    val fonts = DanmakuPreferences.FONT_ORDER
+                    lateinit var fontRow: TextView
+                    fontRow =
+                        pick(
+                            "弹幕字号  ·  ${danmakuPreferences.font}",
+                            fonts.map { "$it" },
+                            { fonts.indexOf(danmakuPreferences.font).coerceAtLeast(0) },
+                        ) {
+                            danmakuPreferences.font = fonts[it]
+                            fontRow.text = "弹幕字号  ·  ${danmakuPreferences.font}"
+                        }
+                    val lanes = DanmakuPreferences.LANE_ORDER
+                    lateinit var lanesRow: TextView
+                    lanesRow =
+                        pick(
+                            "弹幕行数  ·  ${danmakuPreferences.densityRowLabel}",
+                            lanes.map { DanmakuPreferences.laneText(it) },
+                            { lanes.indexOf(danmakuPreferences.lanes).coerceAtLeast(0) },
+                        ) {
+                            danmakuPreferences.lanes = lanes[it]
+                            lanesRow.text = "弹幕行数  ·  ${danmakuPreferences.densityRowLabel}"
+                        }
+                    val areas = DanmakuPreferences.AREA_ORDER
+                    lateinit var areaRow: TextView
+                    areaRow =
+                        pick(
+                            "弹幕区域  ·  ${danmakuPreferences.areaLabel}",
+                            areas.map { DanmakuPreferences.areaText(it) },
+                            { areas.indexOf(danmakuPreferences.area).coerceAtLeast(0) },
+                        ) {
+                            danmakuPreferences.area = areas[it]
+                            areaRow.text = "弹幕区域  ·  ${danmakuPreferences.areaLabel}"
+                        }
+                    val alphas = DanmakuPreferences.ALPHA_ORDER
+                    lateinit var alphaRow: TextView
+                    alphaRow =
+                        pick(
+                            "弹幕不透明度  ·  ${danmakuPreferences.alpha}%",
+                            alphas.map { "$it%" },
+                            { alphas.indexOf(danmakuPreferences.alpha).coerceAtLeast(0) },
+                        ) {
+                            danmakuPreferences.alpha = alphas[it]
+                            alphaRow.text = "弹幕不透明度  ·  ${danmakuPreferences.alpha}%"
+                        }
+                    val travels = DanmakuPreferences.TRAVEL_ORDER
+                    lateinit var travelRow: TextView
+                    travelRow =
+                        pick(
+                            "弹幕速度  ·  ${danmakuPreferences.speedLabel}",
+                            travels.map {
+                                if (it == DanmakuPreferences.TRAVEL_FAST) "标准（9 秒）"
+                                else "慢速（12 秒）"
+                            },
+                            { travels.indexOf(danmakuPreferences.travel).coerceAtLeast(0) },
+                        ) {
+                            danmakuPreferences.travel = travels[it]
+                            travelRow.text = "弹幕速度  ·  ${danmakuPreferences.speedLabel}"
+                        }
+                    toggle("相同弹幕合并", danmakuPreferences.merge) {
+                        danmakuPreferences.merge = it
+                        danmakuChanged()
+                    }
+                }
+                2 -> {
                     val labels = listOf("首页", "找剧", "排行榜", "收藏", "观看历史", "账户预约", "设置")
                     lateinit var startup: TextView
                     startup = setting("启动页面  ·  ${labels[library.startupPage]}") {
@@ -2399,14 +2508,14 @@ class MainActivity : Activity() {
                         }, selected = library.clockMode)
                     }
                 }
-                2 -> {
+                3 -> {
                     content.addView(text(accountSettingsLabel(), 15f, muted).apply {
                         settingsAccountStatus = this
                         setPadding(0, 0, 0, dp(14))
                     })
                     setting("登录与账户管理") { cloudAccount.show() }
                 }
-                3 -> {
+                4 -> {
                     lateinit var updates: TextView
                     updates = setting("版本与更新  ·  ${BuildConfig.VERSION_NAME}") { updater.show(updates) }
                     lateinit var about: TextView

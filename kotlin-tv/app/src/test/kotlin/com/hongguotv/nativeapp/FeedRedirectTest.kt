@@ -51,9 +51,9 @@ class FeedRedirectTest {
                 )
                 .execute()
                 .use {
-                    assertEquals(200, it.code)
-                    assertEquals("video-response", it.body!!.string())
-                    assertEquals(301, it.priorResponse?.code)
+                    assertEquals(200, it.code())
+                    assertEquals("video-response", it.body()!!.string())
+                    assertEquals(301, it.priorResponse()?.code())
                 }
         } finally {
             backend.close()

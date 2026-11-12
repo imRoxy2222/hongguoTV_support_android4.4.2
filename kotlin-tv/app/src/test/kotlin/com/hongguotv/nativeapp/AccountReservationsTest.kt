@@ -53,7 +53,7 @@ class AccountReservationsTest {
             val http =
                 OkHttpClient.Builder()
                     .addInterceptor { chain ->
-                        if (chain.request().url.queryParameter("is_online") == "true")
+                        if (chain.request().url().queryParameter("is_online") == "true")
                             throw java.io.IOException("test unavailable")
                         Response.Builder()
                             .request(chain.request())

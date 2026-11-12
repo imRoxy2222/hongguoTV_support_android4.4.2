@@ -61,7 +61,7 @@ class CloudResumePlaybackTest {
                         .addInterceptor { chain ->
                             val request = chain.request()
                             val body =
-                                if (request.url.encodedPath == "/detail") {
+                                if (request.url().encodedPath() == "/detail") {
                                     """<script>_ROUTER_DATA={"loaderData":{"detail_page":{"seriesDetail":{"series_id":"71","series_name":"云端续播测试","vid_list":["101","102","103"]}}}};</script>"""
                                 } else """{"Code":110001}"""
                             Response.Builder()

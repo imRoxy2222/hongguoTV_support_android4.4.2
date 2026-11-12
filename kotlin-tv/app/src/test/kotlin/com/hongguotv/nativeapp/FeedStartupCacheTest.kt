@@ -73,7 +73,7 @@ class FeedStartupCacheTest {
         var requests = 0
         fun transport() = OkHttpClient.Builder().addInterceptor { chain ->
             requests++
-            val offset = chain.request().url.queryParameter("offset")?.toInt() ?: 0
+            val offset = chain.request().url().queryParameter("offset")?.toInt() ?: 0
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200)
                 .message("fixture").body(feedResponse(if(offset == 0) listOf("101", "202") else listOf("303")).toResponseBody()).build()
         }.build()
@@ -200,7 +200,7 @@ class FeedStartupCacheTest {
                 .addInterceptor { chain ->
                     val req = chain.request()
                     // 播放模型先读 video_tab 新接口；本用例只统计旧接口与视频分段请求。
-                    if (req.url.encodedPath.startsWith("/reading/bookapi/video_tab/"))
+                    if (req.url().encodedPath().startsWith("/reading/bookapi/video_tab/"))
                         return@addInterceptor Response.Builder()
                             .request(req)
                             .protocol(Protocol.HTTP_1_1)
@@ -208,7 +208,7 @@ class FeedStartupCacheTest {
                             .message("test")
                             .body("""{"code":100103,"message":"PARAM_INVALID","data":null}""".toResponseBody())
                             .build()
-                    paths += req.url.encodedPath
+                    paths += req.url().encodedPath()
                     val builder =
                         Response.Builder().request(req).protocol(Protocol.HTTP_1_1).message("test")
                     if (req.header("Range") != null) {
@@ -222,7 +222,7 @@ class FeedStartupCacheTest {
                             .build()
                     } else {
                         val json =
-                            when (req.url.encodedPath) {
+                            when (req.url().encodedPath()) {
                                 "/detail" ->
                                     """<script>_ROUTER_DATA={"loaderData":{"detail_page":{"seriesDetail":{"series_id":"101","series_title":"缓存作品","vid_list":["10101","10102"]}}}};</script>"""
                                 "/novel/player/multi_video_model/v1/" ->

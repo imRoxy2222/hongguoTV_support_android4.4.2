@@ -306,17 +306,17 @@ class PlaybackQueueTest {
             val root = (get(activity, "repository") as ContentRepository).http
             val transport = invoke(activity, "newPrefetchTransport") as OkHttpClient
             try {
-                assertSame(root.cookieJar, transport.cookieJar)
-                assertEquals(root.connectTimeoutMillis, transport.connectTimeoutMillis)
-                assertEquals(root.readTimeoutMillis, transport.readTimeoutMillis)
-                assertEquals(root.callTimeoutMillis, transport.callTimeoutMillis)
-                assertNotSame(root.dispatcher, transport.dispatcher)
-                assertNotSame(root.connectionPool, transport.connectionPool)
-                transport.dispatcher.cancelAll()
-                assertFalse(root.dispatcher.executorService.isShutdown)
+                assertSame(root.cookieJar(), transport.cookieJar())
+                assertEquals(root.connectTimeoutMillis(), transport.connectTimeoutMillis())
+                assertEquals(root.readTimeoutMillis(), transport.readTimeoutMillis())
+                assertEquals(root.callTimeoutMillis(), transport.callTimeoutMillis())
+                assertNotSame(root.dispatcher(), transport.dispatcher())
+                assertNotSame(root.connectionPool(), transport.connectionPool())
+                transport.dispatcher().cancelAll()
+                assertFalse(root.dispatcher().executorService().isShutdown)
             } finally {
-                transport.connectionPool.evictAll()
-                transport.dispatcher.executorService.shutdown()
+                transport.connectionPool().evictAll()
+                transport.dispatcher().executorService()?.shutdown()
             }
         }
 
@@ -387,8 +387,8 @@ class PlaybackQueueTest {
                 ShadowLooper.idleMainLooper()
                 assertFalse(slot.isFresh(key))
                 assertThrows(java.io.IOException::class.java) { remote.read(0, 1) }
-                assertTrue(http.dispatcher.executorService.isShutdown)
-                assertFalse(root.dispatcher.executorService.isShutdown)
+                assertTrue(http.dispatcher().executorService().isShutdown)
+                assertFalse(root.dispatcher().executorService().isShutdown)
                 assertEquals(0, metadataRequests.get())
             } finally {
                 finish.countDown()

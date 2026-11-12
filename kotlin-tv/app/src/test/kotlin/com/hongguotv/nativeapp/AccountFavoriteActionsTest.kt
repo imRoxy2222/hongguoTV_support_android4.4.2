@@ -51,10 +51,10 @@ class AccountFavoriteActionsTest {
                     .addInterceptor { chain ->
                         val request = chain.request()
                         val body =
-                            if (request.method == "POST") {
+                            if (request.method() == "POST") {
                                 writes++
                                 val buffer = okio.Buffer()
-                                request.body!!.writeTo(buffer)
+                                request.body()!!.writeTo(buffer)
                                 present =
                                     JSONObject(buffer.readUtf8())
                                         .getJSONArray("update_bookshelf_video_list")
@@ -115,14 +115,14 @@ class AccountFavoriteActionsTest {
                     OkHttpClient.Builder()
                         .addInterceptor { chain ->
                             val request = chain.request()
-                            if (request.method == "POST") writes++
+                            if (request.method() == "POST") writes++
                             Response.Builder()
                                 .request(request)
                                 .protocol(Protocol.HTTP_1_1)
                                 .code(200)
                                 .message("OK")
                                 .body(
-                                    (if (request.method == "POST") """{"code":0}"""
+                                    (if (request.method() == "POST") """{"code":0}"""
                                         else rows(false))
                                         .toResponseBody()
                                 )
@@ -226,14 +226,14 @@ class AccountFavoriteActionsTest {
                     OkHttpClient.Builder()
                         .addInterceptor { chain ->
                             val request = chain.request()
-                            if (request.method == "POST") present = true
+                            if (request.method() == "POST") present = true
                             Response.Builder()
                                 .request(request)
                                 .protocol(Protocol.HTTP_1_1)
                                 .code(200)
                                 .message("OK")
                                 .body(
-                                    (if (request.method == "POST") """{"code":0}"""
+                                    (if (request.method() == "POST") """{"code":0}"""
                                         else rows(present))
                                         .toResponseBody()
                                 )

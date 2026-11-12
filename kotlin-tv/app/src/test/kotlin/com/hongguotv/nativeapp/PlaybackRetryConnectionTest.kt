@@ -22,13 +22,13 @@ import org.robolectric.annotation.Config
 class PlaybackRetryConnectionTest {
     @Test fun http2RetriesActuallyUseFreshConnectionsAndLeaveSharedTransportUsable() {
         val server = MockWebServer()
-        server.protocols = listOf(Protocol.H2_PRIOR_KNOWLEDGE)
+        server.setProtocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE))
         server.start()
         val http = OkHttpClient.Builder()
             .protocols(listOf(Protocol.H2_PRIOR_KNOWLEDGE))
             .addInterceptor { chain ->
                 val request = chain.request()
-                chain.proceed(request.newBuilder().url(server.url(request.url.encodedPath)).build())
+                chain.proceed(request.newBuilder().url(server.url(request.url().encodedPath())).build())
             }.build()
         try {
             repeat(4) { server.enqueue(MockResponse().setBody("")) }
@@ -44,12 +44,12 @@ class PlaybackRetryConnectionTest {
             assertEquals(4, error.detail.orEmpty().split(" ").size)
             server.enqueue(MockResponse().setBody("still usable"))
             http.newCall(Request.Builder().url(server.url("/other")).build()).execute().use {
-                assertEquals("still usable", it.body!!.string())
+                assertEquals("still usable", it.body()!!.string())
             }
             assertEquals(1, server.takeRequest(5, TimeUnit.SECONDS)!!.sequenceNumber)
         } finally {
-            http.connectionPool.evictAll()
-            http.dispatcher.executorService.shutdownNow()
+            http.connectionPool().evictAll()
+            http.dispatcher().executorService().shutdownNow()
             server.shutdown()
         }
     }

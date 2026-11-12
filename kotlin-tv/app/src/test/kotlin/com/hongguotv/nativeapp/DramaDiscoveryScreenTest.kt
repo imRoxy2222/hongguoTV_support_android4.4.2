@@ -56,7 +56,7 @@ class DramaDiscoveryScreenTest {
 
     private fun body(request: Request): JSONObject {
         val buffer = okio.Buffer()
-        request.body!!.writeTo(buffer)
+        request.body()!!.writeTo(buffer)
         return JSONObject(buffer.readUtf8())
     }
 
@@ -66,9 +66,9 @@ class DramaDiscoveryScreenTest {
             else emptyList())
 
     private fun response(request: Request): String {
-        if (request.url.encodedPath == "/incent_resource/suggestion")
+        if (request.url().encodedPath() == "/incent_resource/suggestion")
             return """{"suggest_list":[{"name":"大佬，你该出手了"}]}"""
-        if (request.url.encodedPath == "/api/search/result")
+        if (request.url().encodedPath() == "/api/search/result")
             return """{"hasMore":false,"searchList":[{"series_id":"900","series_name":"大佬搜索结果剧"}]}"""
         val input = body(request)
         val offset = input.getInt("offset")

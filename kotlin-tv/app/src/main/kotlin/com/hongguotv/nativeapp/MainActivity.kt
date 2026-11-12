@@ -4063,6 +4063,16 @@ class MainActivity : Activity() {
     }
 
     private fun playerFailure(problem: Throwable) {
+        // Device diagnostics: the cause chain is the only record of why playback setup failed
+        // (for example a failed anonymous device registration). Class names and messages only,
+        // no media URLs, cookies or response bodies.
+        android.util.Log.w(
+            "HongguoTV",
+            "playback failure: " +
+                generateSequence(problem) { it.cause }
+                    .take(8)
+                    .joinToString(" <- ") { "${it.javaClass.name}: ${it.message?.take(200)}" },
+        )
         // 已稳定出画面后的新故障开启新的快速恢复窗口，不能沿用几分钟前的启动截止时间。
         if (!waitingForFirstFrame && !playError) {
             playbackPreparationUntil = android.os.SystemClock.elapsedRealtime() + 20_000

@@ -15,7 +15,7 @@ import javax.net.ssl.SSLSocketFactory
 class HongguoTvApplication : MultiDexApplication() {
     override fun onCreate() {
         super.onCreate()
-        if (Build.VERSION.SDK_INT < 21) enableTls12()
+        if (Build.VERSION.SDK_INT < 21) enableTls12(this)
     }
 }
 
@@ -23,13 +23,21 @@ class HongguoTvApplication : MultiDexApplication() {
  * Android 4.4 ships an OpenSSL build that supports TLS 1.2, but the platform
  * enables only TLS 1.0 on newly created sockets. Modern API and CDN hosts
  * reject TLS 1.0, so explicitly enable the strongest mutually supported
- * protocol on every socket. This never disables certificate verification.
+ * protocol on every socket.
+ *
+ * The same context also carries the bundled public CA supplement: KitKat's system
+ * trust store predates the roots that today's servers chain to, so without it every
+ * HTTPS call fails with "Trust anchor for certification path not found". The
+ * supplement only adds public roots that the system store is missing — the platform
+ * anchors still decide first and certificate verification is never disabled.
  */
-private fun enableTls12() {
+private fun enableTls12(application: HongguoTvApplication) {
     runCatching {
         val context = SSLContext.getInstance("TLS")
-        context.init(null, null, null)
+        val supplement = ModernTrust.supplement(application)
+        context.init(null, supplement?.let { arrayOf<javax.net.ssl.TrustManager>(it) }, null)
         HttpCompat.installTlsSocketFactory(Tls12SocketFactory(context.socketFactory))
+        if (BuildConfig.DEBUG) Log.i("HongguoTV", "TLS 1.2 + ${if (supplement == null) "system" else "supplemented"} trust store installed")
     }.onFailure { Log.w("HongguoTV", "TLS 1.2 enablement failed", it) }
 }
 

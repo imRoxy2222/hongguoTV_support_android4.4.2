@@ -114,13 +114,24 @@ class PlaybackDeviceSession(
     private fun registerDevice(http: OkHttpClient): DeviceRegister.Registered {
         val device =
             try {
-                register(http) ?: throw PlaybackDeviceRegistrationException()
+                register(http) ?: throw PlaybackDeviceRegistrationException().also {
+                    System.err.println("deviceRegister: empty registration response")
+                }
             } catch (error: InterruptedIOException) {
                 throw error
             } catch (error: IOException) {
+                System.err.println(
+                    "deviceRegister: ${error.javaClass.name}: ${error.message?.take(200)}"
+                )
                 throw PlaybackDeviceRegistrationException(error)
             }
-        if (!validDevice(device)) throw PlaybackDeviceRegistrationException()
+        if (!validDevice(device)) {
+            System.err.println(
+                "deviceRegister: rejected ids deviceId=${device.deviceId.length} " +
+                    "installId=${device.installId.length}"
+            )
+            throw PlaybackDeviceRegistrationException()
+        }
         if (Thread.currentThread().isInterrupted) throw InterruptedIOException("播放请求已取消")
         return device
     }

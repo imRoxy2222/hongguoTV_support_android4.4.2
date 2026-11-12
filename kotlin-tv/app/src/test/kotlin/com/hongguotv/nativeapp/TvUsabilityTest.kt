@@ -191,10 +191,10 @@ class TvUsabilityTest {
             val card = quality.parent as View
             assertEquals(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, card.layoutParams.height)
             val rows = texts(root)
-            listOf("播放", "外观与操作", "账户", "应用与更新").forEach { title ->
+            listOf("播放", "弹幕", "外观与操作", "账户", "应用与更新").forEach { title ->
                 assertTrue(rows.any { it.text == title })
             }
-            val appearance = root.findViewWithTag<View>("settings-category-1")
+            val appearance = root.findViewWithTag<View>("settings-category-2")
             appearance.requestFocus()
             appearance.performClick()
             val startup = texts(root).first { it.text.toString().startsWith("启动页面") }
@@ -219,11 +219,11 @@ class TvUsabilityTest {
             assertEquals(!previous, library.homeAutoplay)
             assertEquals(!previous, preview.isChecked)
             assertFalse(preview.isFocusable)
-            root.findViewWithTag<View>("settings-category-2").requestFocus()
-            val account = texts(root).first { it.text == "登录与账户管理" }
-            assertEquals(root.findViewWithTag<View>("settings-category-2").id, account.nextFocusLeftId)
-            assertFalse(texts(root).any { it.text.toString().startsWith("版本与更新") })
             root.findViewWithTag<View>("settings-category-3").requestFocus()
+            val account = texts(root).first { it.text == "登录与账户管理" }
+            assertEquals(root.findViewWithTag<View>("settings-category-3").id, account.nextFocusLeftId)
+            assertFalse(texts(root).any { it.text.toString().startsWith("版本与更新") })
+            root.findViewWithTag<View>("settings-category-4").requestFocus()
             assertTrue(texts(root).any { it.text.toString().startsWith("版本与更新") })
             assertFalse(texts(root).any { it.text == "登录与账户管理" })
         } finally {

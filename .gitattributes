@@ -1,0 +1,4 @@
+# Unix entry points must stay LF: with core.autocrlf=true Git checks them out as
+# CRLF, which makes `./gradlew` fail on WSL/Linux with `$'\r': command not found`.
+gradlew text eol=lf
+*.sh text eol=lf

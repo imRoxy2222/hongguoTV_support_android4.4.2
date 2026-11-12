@@ -22,7 +22,7 @@ Kotlin + Android 原生 View + Media3，单 APK，本分支最低 Android 4.4.2 
 
 本分支以 API 19 为兼容目标：`minSdk` 由 21 下调为 19 并启用 MultiDex（`androidx.multidex:multidex:2.0.1`，Application 改为自定义 `HongguoTvApplication`），Media3 由 1.8.0 降为 1.4.1（最后一个声明 minSdk 19 的版本），OkHttp / MockWebServer 由 4.12.0 降为 3.12.13，并通过 `OkHttpCompat` / `HttpCompat` 兼容层保持 44 个扩展调用点与约 500 处 getter 迁移不改业务逻辑。`decoder-ffmpeg` 的 native FFmpeg JNI 构建已禁用（NDK r27 不支持 API 19），`FfmpegLibrary.isAvailable()` 返回 false，Android 4.4.2 回退平台解码器；`FeedPlayback` 取消 Media3 1.5+ 的预加载／预缓冲排序以降低 KitKat 电视内存压力。这两处是明确的功能降级。compileSdk / targetSdk 仍为 36，versionCode 13 / versionName 0.11.1 不变。详见 [兼容性说明](ANDROID_COMPATIBILITY.md) 与 [decoder-ffmpeg 说明](decoder-ffmpeg/README.md)。
 
-真实 Android 4.4.2 电视尚未做任何实机验证：TLS 1.2 握手与老系统证书链、平台音频解码器能力、遥控器／焦点、安装流程、MultiDex 冷启动与内存占用均需实机验收。`:core:test` 曾在本分支构建成功；app 模块编译、`:app:testDebugUnitTest`、`:app:lintDebug`、`:app:assembleDebug` 仍由主代理验证中，结果未定。源码／构建兼容不等于真机验收，不能把 JVM 测试或 lint 等同于硬件验证。
+本分支的宿主侧验证已全部通过：`:core:test`（335 项）、`:app:testDebugUnitTest`（218 项）、`:app:lintDebug`（0 错误 / 92 警告）、`:app:assembleDebug` 均构建成功；合并清单为 `minSdkVersion="19"`，debug APK 含 4 个 dex 且不含 `lib/*.so`。Robolectric 4.14.1 不提供 API 19 镜像，兼容性矩阵仍跑在 API 21/23/26，另由 `Api19BranchTest` 在 API 21 沙箱中强制 `SDK_INT=19` 覆盖 KitKat 分支。真实 Android 4.4.2 电视尚未做任何实机验证：TLS 1.2 握手与老系统证书链、平台音频解码器能力、遥控器／焦点、安装流程、MultiDex 冷启动与内存占用均需实机验收。源码／构建兼容不等于真机验收，不能把 JVM 测试或 lint 等同于硬件验证。详见 [兼容性说明](ANDROID_COMPATIBILITY.md)。
 
 ## 发布
 

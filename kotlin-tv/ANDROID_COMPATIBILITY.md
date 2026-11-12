@@ -92,6 +92,26 @@ silently fixed by loosening checks.
   `canPrefetch()` depends on `totalBufferedDuration` and `setCurrentIndex()` is now
   a no-op. This reduces KitKat TV memory pressure at the cost of no pre-buffering
   or preload ordering.
+- **System media session is unavailable on KitKat.** `android.media.session.*`
+  only exists from API 21. `MainActivity` keeps a nullable `TvMediaSession`, never
+  constructs it on API 19, and guards every call; the class is annotated
+  `@RequiresApi(21)`. Remote/now-playing integration is therefore absent on
+  Android 4.4.2, while in-app controls still work.
+- **Video-size pre-check is weaker on KitKat.** `MediaCodecInfo.VideoCapabilities`
+  is API 21+. On API 19 the decoder probe can only verify that a decoder declares
+  the MIME type; runtime decode failures remain covered by the persisted
+  learned-failure table. Decoder enumeration uses the legacy indexed
+  `MediaCodecList` API reflectively, because its no-arg constructor is no longer in
+  the compileSdk 36 stubs.
+- **Cosmetic tinting and Material theme are API 21+ only.** Progress-bar, button
+  and background tint calls are guarded by `SDK_INT >= 21`. `res/values/styles.xml`
+  uses a Holo baseline (Material does not exist on KitKat) and
+  `res/values-v21/styles.xml` restores the original Material parents and
+  `android:colorAccent` on newer systems. `TextView.showSoftInputOnFocus` is reached
+  reflectively on KitKat via its hidden method names.
+- **PackageInstaller is unavailable on KitKat.** `UpdateInstallSession.submit()`
+  rejects API < 21 explicitly; the app falls back to the intent / file-manager
+  update path, and the result activity guards `abandonSession()`.
 
 ## Update and release transition
 
@@ -120,10 +140,23 @@ historical `android5.apk` and `android8.apk` filenames.
   Huawei Cloud mirror and Robolectric from the Alibaba Cloud mirror.
 - Do not suppress `NewApi` and do not override dependency minSdk errors to force a
   build. Inspect the merged manifest for minSdk 19 and the APK for `lib/*/*.so`.
-- **Verification status (do not report as passed).** `:core:test` built successfully
-  on this branch after the OkHttp getter migration. `:app:testDebugUnitTest`,
-  `:app:lintDebug` and `:app:assembleDebug` are still being verified by the main
-  agent and their results are not final. No real Android 4.4.2 TV has been tested.
+- **Verification status (host-side build checks only).** On this branch,
+  `:core:test` (335 tests), `:app:testDebugUnitTest` (218 tests),
+  `:app:lintDebug` (0 errors, 92 warnings) and `:app:assembleDebug` all completed
+  successfully. The merged debug manifest declares `minSdkVersion="19"`; the
+  16.18 MB debug APK contains four dex files (MultiDex active) and no `lib/*.so`,
+  consistent with the disabled native FFmpeg build. API 21+ calls are gated by
+  `Build.VERSION.SDK_INT` branches or isolated in `@RequiresApi(21)` holders —
+  no project-wide `NewApi` suppression or lint baseline is used.
+- **Robolectric cannot emulate API 19.** Robolectric 4.14.1 `DefaultSdkProvider`
+  starts at `5.0.2_r3` (API 21); `@Config(sdk = [19])` fails with `API level 19 is
+  not available`. The compatibility matrices therefore run on API 21/23/26, while
+  `Api19BranchTest` forces `Build.VERSION.SDK_INT` to 19 inside an API 21 sandbox
+  to exercise the KitKat-only branches. This is branch coverage, not device
+  verification.
+- **No real Android 4.4.2 TV has been tested.** Source, unit-test, lint and APK
+  checks do not establish runtime compatibility; the checklist below remains the
+  acceptance criterion.
 
 ## Required real-device acceptance checklist
 

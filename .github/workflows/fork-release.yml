@@ -62,6 +62,7 @@ jobs:
           [[ "$MIN_SDK" == "19" ]] || { echo "::error::本分支必须保持 minSdk 19，当前 $MIN_SDK"; exit 1; }
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "versionCode=$VERSION_CODE" >> "$GITHUB_OUTPUT"
+          echo "minSdk=$MIN_SDK" >> "$GITHUB_OUTPUT"
           echo "已确认版本 ${VERSION}（versionCode ${VERSION_CODE}，minSdk ${MIN_SDK}）"
 
       - name: Restore signing keystore from secrets
@@ -103,6 +104,7 @@ jobs:
         env:
           VERSION: ${{ steps.ver.outputs.version }}
           VERSION_CODE: ${{ steps.ver.outputs.versionCode }}
+          MIN_SDK: ${{ steps.ver.outputs.minSdk }}
         run: |
           set -euo pipefail
           APK_DIR=kotlin-tv/app/build/outputs/apk/release
@@ -133,8 +135,6 @@ jobs:
           git archive --format=zip --prefix="hongguotv-${GITHUB_REF_NAME}/" \
             --output "dist/hongguotv-${GITHUB_REF_NAME}-source.zip" HEAD
 
-          ( cd dist && sha256sum ./*.apk ./*.zip > SHA256SUMS )
-
           printf '%s\n' \
             "红果 TV（Android 4.4.2 / API 19 分支）${VERSION}，versionCode ${VERSION_CODE}。" \
             "" \
@@ -142,10 +142,46 @@ jobs:
             "" \
             "- 最低系统：Android 4.4.2（API 19）；FFmpeg 原生解码已禁用，音频走系统解码器。" \
             "- 三种安装包：android4（全 ABI）、arm32-v7a、arm64-v8a。" \
+            "- 应用内更新读取本仓库 Release 的 update.json，标签 ${GITHUB_REF_NAME}。" \
             "- 签名说明：本仓库使用自有证书，与上游 N3urda/hongguoTV 的正式签名不同，" \
             "  从上游版本切换过来必须【先卸载】上游 APK（会清除本机记录），不能覆盖安装。" \
-            "- 源码提交：${GITHUB_SHA}；附件含 APK、对应源码 ZIP、SHA256SUMS。" \
+            "- 源码提交：${GITHUB_SHA}；附件含 APK、对应源码 ZIP、update.json、SHA256SUMS。" \
             > dist/notes.md
+
+          # 应用内自更新元数据：schema 与上游一致，客户端读 latest/download/update.json。
+          # 指向 android4 通用包（四种 ABI），确保任何一台 4.4.2 设备都能覆盖安装。
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import pathlib
+
+          version = os.environ["VERSION"]
+          code = int(os.environ["VERSION_CODE"])
+          min_sdk = int(os.environ["MIN_SDK"])
+          tag = f"a44-v{version}"
+          name = f"hongguotv-kotlin-{version}-android4.apk"
+          apk = pathlib.Path("dist") / name
+          if not apk.is_file():
+              raise SystemExit(f"缺少自更新安装包：{apk}")
+          data = apk.read_bytes()
+          manifest = {
+              "schema": 1,
+              "packageName": "com.hongguotv.nativeapp",
+              "versionCode": code,
+              "versionName": version,
+              "minSdk": min_sdk,
+              "tag": tag,
+              "apk": {"name": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()},
+              "notes": f"红果 TV {version}（Android 4.4.2）。本版签名与本仓库一致，可直接覆盖安装并保留本机记录。",
+          }
+          (pathlib.Path("dist") / "update.json").write_text(
+              json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+          )
+          print(f"update.json: {tag} versionCode={code} size={len(data)}")
+          PY
+
+          ( cd dist && sha256sum ./*.apk ./*.zip ./*.json > SHA256SUMS )
 
           ls -l dist
 

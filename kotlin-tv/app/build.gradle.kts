@@ -22,7 +22,11 @@ android {
         minSdk = 19
         // ART loads secondary dex files natively only from API 21; KitKat needs MultiDex.
         multiDexEnabled = true
-        targetSdk = 36
+        // This build only targets Android 4.4.2 (API 19) TVs. Declaring targetSdk 19 keeps the
+        // whole app on KitKat-era platform behaviour on every system it runs on: install-time
+        // permission grant, cleartext HTTP allowed, legacy file access, and no high-targetSdk
+        // compatibility shims imposed by vendor firmwares.
+        targetSdk = 19
         versionCode = System.getenv("HONGGUOTV_VERSION_CODE")?.toInt() ?: 13
         versionName = System.getenv("HONGGUOTV_VERSION_NAME") ?: "0.11.1"
     }

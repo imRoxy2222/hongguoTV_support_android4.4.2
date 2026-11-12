@@ -70,6 +70,13 @@ android {
             )
         }
     }
+    lint {
+        // targetSdk 19 是本分支的刻意设定（理由见 defaultConfig 上方注释）：本分支
+        // 只面向 Android 4.4.2 电视侧载分发，不走 Google Play。该检查判定的是
+        // Play 上架政策（targetSdk 需 ≥ 33），与本项目分发方式无关，故关闭。
+        // 只关闭这一条；NewApi 等真实兼容性错误仍会阻断构建，不设全局抑制或 baseline。
+        disable += "ExpiredTargetSdkVersion"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17

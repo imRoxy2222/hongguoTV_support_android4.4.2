@@ -17,8 +17,10 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.annotation.LooperMode
 
 @RunWith(RobolectricTestRunner::class)
-// Robolectric fetches the API 19 android-all-instrumented (4.4_r1) artifact on first run.
-@Config(sdk = [19, 21, 23, 26], qualifiers = "land")
+// Robolectric 4.14.1 DefaultSdkProvider starts at 5.0.2_r3 (API 21): KitKat cannot be
+// emulated here. The SDK_INT < 21 branches are covered by Api19BranchTest and the
+// real-device checklist in ANDROID_COMPATIBILITY.md.
+@Config(sdk = [21, 23, 26], qualifiers = "land")
 @LooperMode(LooperMode.Mode.PAUSED)
 @GraphicsMode(GraphicsMode.Mode.LEGACY)
 class AndroidCompatibilityTest {
@@ -139,7 +141,7 @@ class AndroidCompatibilityTest {
 
     @Test
     fun mainActivityCreatesAndClosesOnSupportedSystems() {
-        assertTrue(Build.VERSION.SDK_INT in listOf(19, 21, 23, 26))
+        assertTrue(Build.VERSION.SDK_INT in listOf(21, 23, 26))
         val controller =
             Robolectric.buildActivity(MainActivity::class.java).create().start().resume()
         try {

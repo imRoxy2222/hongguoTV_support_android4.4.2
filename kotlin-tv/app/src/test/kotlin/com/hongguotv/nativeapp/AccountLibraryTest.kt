@@ -21,7 +21,8 @@ import org.robolectric.shadows.ShadowLooper
 import com.hongguotv.core.compat.*
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [19, 21, 26], qualifiers = "w960dp-h540dp-land-mdpi")
+// Robolectric 4.14.1 has no API 19 SDK image; see Api19BranchTest.
+@Config(sdk = [21, 26], qualifiers = "w960dp-h540dp-land-mdpi")
 @LooperMode(LooperMode.Mode.PAUSED)
 @GraphicsMode(GraphicsMode.Mode.LEGACY)
 class AccountLibraryTest {

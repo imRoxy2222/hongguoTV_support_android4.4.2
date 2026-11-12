@@ -2572,11 +2572,11 @@ class MainActivity : Activity() {
                     updates = setting("版本与更新  ·  ${BuildConfig.VERSION_NAME}") { updater.show(updates) }
                     lateinit var about: TextView
                     about = setting("关于红果 TV") {
-                        tvTools.info("关于红果 TV", "hongguoTV · 非官方客户端\n基于 N3urda/hongguoTV\n功能同步：tsukiyo-zero/hongguoTV\n版本：${BuildConfig.VERSION_NAME}\n项目：https://github.com/N3urda/hongguoTV\n\n本应用与红果官方无隶属关系。", about)
+                        tvTools.info("关于红果 TV", "hongguoTV · 非官方客户端\nAndroid 4.4.2 兼容分支\n上游：N3urda/hongguoTV\n功能同步：tsukiyo-zero/hongguoTV\n版本：${BuildConfig.VERSION_NAME}\n项目：https://github.com/imRoxy2222/hongguoTV_support_android4.4.2\n\n本应用与红果官方无隶属关系。", about)
                     }
                     lateinit var license: TextView
                     license = setting("开源许可") {
-                        tvTools.info("开源许可", "本原生版以 GPL-3.0 发布。\n内容协议与加密处理移植自 drpys（22261ad）。\nAndroidX Media3 / OkHttp：Apache-2.0\nKotlin：Apache-2.0\nBouncy Castle：MIT\n完整源码和许可证见 GitHub：N3urda/hongguoTV。", license)
+                        tvTools.info("开源许可", "本原生版以 GPL-3.0 发布。\n内容协议与加密处理移植自 drpys（22261ad）。\nAndroidX Media3 / OkHttp：Apache-2.0\nKotlin：Apache-2.0\nBouncy Castle：MIT\n完整源码和许可证见 GitHub：\nimRoxy2222/hongguoTV_support_android4.4.2\n上游项目：N3urda/hongguoTV。", license)
                     }
                 }
             }

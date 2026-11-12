@@ -45,25 +45,51 @@ jobs:
 
       - name: Resolve and validate version from tag
         id: ver
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
-          if [[ ! "$TAG" =~ ^a44-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::标签必须形如 a44-v0.13.2，当前为 $TAG"
+          # 规则（docs/RELEASE_POLICY.md）：a44-v<上游版本>-<N>，N 是该上游版本的第几次
+          # fork 发布，从 1 开始。上游版本必须与 main 上最新的 kotlin-v* 标签一致。
+          if [[ ! "$TAG" =~ ^a44-v([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+            echo "::error::标签必须形如 a44-v0.13.2-1，当前为 $TAG"
             exit 1
           fi
           VERSION="${TAG#a44-v}"
-          # 版本号唯一来源是 Gradle 源码（跟随上游），标签只做镜像，不允许改写。
+          REVISION="${BASH_REMATCH[2]}"
+          # 版本号唯一来源是 Gradle 源码，标签只做镜像，不允许改写。
           SRC_VERSION="$(grep -oP 'versionName\s*=.*\?:\s*"\K[^"]+' kotlin-tv/app/build.gradle.kts | head -1)"
           VERSION_CODE="$(grep -oP 'versionCode\s*=.*\?:\s*\K[0-9]+' kotlin-tv/app/build.gradle.kts | head -1)"
           MIN_SDK="$(grep -oP 'minSdk\s*=\s*\K[0-9]+' kotlin-tv/app/build.gradle.kts | head -1)"
           [[ -n "$SRC_VERSION" && -n "$VERSION_CODE" && -n "$MIN_SDK" ]] || { echo "::error::无法从 build.gradle.kts 读取版本"; exit 1; }
           [[ "$SRC_VERSION" == "$VERSION" ]] || { echo "::error::标签 $TAG 与源码 versionName $SRC_VERSION 不一致"; exit 1; }
           [[ "$MIN_SDK" == "19" ]] || { echo "::error::本分支必须保持 minSdk 19，当前 $MIN_SDK"; exit 1; }
+          # versionCode = 上游 versionCode * 100 + N，低两位必须与标签修订号对齐。
+          if (( VERSION_CODE % 100 != REVISION )); then
+            echo "::error::versionCode $VERSION_CODE 的低两位必须等于标签修订号 $REVISION"
+            exit 1
+          fi
+          # 单调性：必须大于最近一次已发布 Release 的 versionCode，否则已装用户收不到更新。
+          PREV_TAG="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=1" \
+            --jq '(.[0] // {}) | .tag_name // ""' 2>/dev/null || true)"
+          if [[ -n "$PREV_TAG" ]]; then
+            PREV_CODE="$(gh release download "$PREV_TAG" --repo "$GITHUB_REPOSITORY" \
+              --pattern update.json --output - 2>/dev/null \
+              | grep -oP '"versionCode"\s*:\s*\K[0-9]+' || true)"
+            if [[ -n "$PREV_CODE" ]] && (( VERSION_CODE <= PREV_CODE )); then
+              echo "::error::versionCode $VERSION_CODE 未大于上次发布 $PREV_TAG 的 $PREV_CODE"
+              exit 1
+            fi
+            echo "上次发布 $PREV_TAG / versionCode ${PREV_CODE:-未知}"
+          else
+            echo "首次发布，无单调性基线"
+          fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "versionCode=$VERSION_CODE" >> "$GITHUB_OUTPUT"
           echo "minSdk=$MIN_SDK" >> "$GITHUB_OUTPUT"
-          echo "已确认版本 ${VERSION}（versionCode ${VERSION_CODE}，minSdk ${MIN_SDK}）"
+          echo "revision=$REVISION" >> "$GITHUB_OUTPUT"
+          echo "已确认版本 ${VERSION}（修订 ${REVISION}，versionCode ${VERSION_CODE}，minSdk ${MIN_SDK}）"
 
       - name: Restore signing keystore from secrets
         env:

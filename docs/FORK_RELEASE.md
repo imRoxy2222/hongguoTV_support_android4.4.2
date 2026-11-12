@@ -71,17 +71,16 @@ git push origin a44-v0.13.2-1
 1. 校验标签格式 `a44-vX.Y.Z-N`，且与源码 `versionName`、`minSdk 19` 一致；`versionCode % 100 == N`，
    且大于上次已发布 Release 的 `versionCode`。任一不符直接失败；
 2. 从 Secrets 还原签名密钥到 runner 临时目录（结束即删）；
-3. 跑 `:core:test`、`:app:testDebugUnitTest`、`:app:lintRelease`、`:app:assembleRelease -PreleaseAbis=true`；
-4. 逐个 APK 校验包名、版本、`minSdk 19`、**v1(JAR) 签名**（KitKat 必需）；
+3. 跑 `:core:test`、`:app:testDebugUnitTest`、`:app:lintRelease`、`:app:assembleRelease`
+   （**不传** `-PreleaseAbis=true`：本分支 APK 内无 native 库，ABI 拆分只会复制同一份产物）；
+4. 校验包名、版本、`minSdk 19`、**v1(JAR) 签名**（KitKat 必需）；
 5. 创建 Release 并上传：
 
 | 附件 | 说明 |
 | --- | --- |
-| `hongguotv-kotlin-<ver>-android4.apk` | 全 ABI，电视首选 |
-| `hongguotv-kotlin-<ver>-arm32-v7a.apk` | 仅 ARM32 |
-| `hongguotv-kotlin-<ver>-arm64-v8a.apk` | 仅 ARM64 |
+| `hongguotv-kotlin-<ver>-android4.apk` | 唯一安装包：通用包，含全部 ABI |
 | `hongguotv-<tag>-source.zip` | 对应提交完整源码（GPL-3.0 要求） |
-| `update.json` | 应用内自更新的元数据，指向 `android4` 通用包 |
+| `update.json` | 应用内自更新的元数据，指向上面的通用包 |
 | `SHA256SUMS` | 全部附件的 SHA-256 |
 
 整个过程约 10–20 分钟，Actions 页面可看实时日志。

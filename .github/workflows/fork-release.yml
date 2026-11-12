@@ -121,11 +121,14 @@ jobs:
           HONGGUOTV_KEY_ALIAS: ${{ secrets.HONGGUOTV_KEY_ALIAS }}
           HONGGUOTV_KEY_PASSWORD: ${{ secrets.HONGGUOTV_KEY_PASSWORD }}
         run: |
+          # 不传 -PreleaseAbis=true：本分支禁用 native FFmpeg 后 APK 内已无 lib/<abi>/，
+          # ABI split 只会把同一份产物复制三份（三个 APK 的 sha256 完全相同）。
+          # 通用包在任意 ABI 上都能安装，因此只构建并发布 app-release.apk。
           ./kotlin-tv/gradlew -p kotlin-tv \
             :core:test :app:testDebugUnitTest :app:lintRelease :app:assembleRelease \
-            -PreleaseAbis=true --console=plain
+            --console=plain
 
-      - name: Verify signature, collect installable APKs
+      - name: Verify signature, collect installable APK
         id: dist
         env:
           VERSION: ${{ steps.ver.outputs.version }}
@@ -137,25 +140,28 @@ jobs:
           BT="$ANDROID_HOME/build-tools/36.0.0"
           mkdir -p dist
 
-          pick() { # $1=gradle 产物后缀 $2=对外文件名后缀
-            local src="$APK_DIR/app-$1-release.apk"
-            [[ -f "$src" ]] || { echo "::error::缺少构建产物 $src"; exit 1; }
-            local badging certs
-            badging="$("$BT/aapt" dump badging "$src")"
-            grep -q "^package: name='com.hongguotv.nativeapp' versionCode='${VERSION_CODE}' versionName='${VERSION}'" <<<"$badging" \
-              || { echo "::error::$src 包名/版本不符"; exit 1; }
-            grep -q "^sdkVersion:'19'" <<<"$badging" || { echo "::error::$src minSdk 不是 19"; exit 1; }
-            # --min-sdk-version 19 会强制校验 v1/JAR 签名，KitKat 必需。
-            certs="$("$BT/apksigner" verify --verbose --min-sdk-version 19 --print-certs "$src")"
-            grep -q 'Verified using v1 scheme (JAR signing): true' <<<"$certs" \
-              || { echo "::error::$src 缺少 v1 签名，Android 4.4.2 无法安装"; exit 1; }
-            echo "$certs" | grep 'Signer #1 certificate SHA-256 digest' | head -1
-            cp "$src" "dist/hongguotv-kotlin-${VERSION}-$2.apk"
-          }
+          # 只发布一个通用包：APK 内没有 native 库，ABI split 产出的三份内容完全相同，
+          # 拆开发布只会让用户困惑（也无法据此判断该装哪个）。
+          APK="$APK_DIR/app-release.apk"
+          [[ -f "$APK" ]] || { echo "::error::缺少构建产物 $APK（构建是否误传了 -PreleaseAbis=true？）"; exit 1; }
+          # 反向校验：一旦出现 app-<abi>-release.apk，说明 ABI 拆分被重新打开，
+          # 此时产物内容可能真的不同，必须重新决定发布策略，不能静默只发通用包。
+          if compgen -G "$APK_DIR/app-*-release.apk" > /dev/null; then
+            echo "::error::检测到 ABI split 产物，与「只发一个通用包」的约定冲突：$(cd "$APK_DIR" && ls app-*-release.apk)"
+            exit 1
+          fi
 
-          pick universal   android4
-          pick armeabi-v7a arm32-v7a
-          pick arm64-v8a   arm64-v8a
+          badging="$("$BT/aapt" dump badging "$APK")"
+          grep -q "^package: name='com.hongguotv.nativeapp' versionCode='${VERSION_CODE}' versionName='${VERSION}'" <<<"$badging" \
+            || { echo "::error::$APK 包名/版本不符"; exit 1; }
+          grep -q "^sdkVersion:'19'" <<<"$badging" || { echo "::error::$APK minSdk 不是 19"; exit 1; }
+          # --min-sdk-version 19 会强制校验 v1/JAR 签名，KitKat 必需。
+          certs="$("$BT/apksigner" verify --verbose --min-sdk-version 19 --print-certs "$APK")"
+          grep -q 'Verified using v1 scheme (JAR signing): true' <<<"$certs" \
+            || { echo "::error::$APK 缺少 v1 签名，Android 4.4.2 无法安装"; exit 1; }
+          echo "$certs" | grep 'Signer #1 certificate SHA-256 digest' | head -1
+          # 附件名保持 android4：update.json 与已发布客户端的下载路径都依赖这个名字。
+          cp "$APK" "dist/hongguotv-kotlin-${VERSION}-android4.apk"
 
           # GPL-3.0：随包提供对应提交的完整源码。
           git archive --format=zip --prefix="hongguotv-${GITHUB_REF_NAME}/" \
@@ -167,7 +173,7 @@ jobs:
             "同步自上游 main 的 ${VERSION}，本仓库只做 Android 4.4.2 兼容改造，功能跟随上游。" \
             "" \
             "- 最低系统：Android 4.4.2（API 19）；FFmpeg 原生解码已禁用，音频走系统解码器。" \
-            "- 三种安装包：android4（全 ABI）、arm32-v7a、arm64-v8a。" \
+            "- 安装包只有一个：android4（通用包，含全部 ABI，无需按架构挑选）。" \
             "- 应用内更新读取本仓库 Release 的 update.json，标签 ${GITHUB_REF_NAME}。" \
             "- 签名说明：本仓库使用自有证书，与上游 N3urda/hongguoTV 的正式签名不同，" \
             "  从上游版本切换过来必须【先卸载】上游 APK（会清除本机记录），不能覆盖安装。" \

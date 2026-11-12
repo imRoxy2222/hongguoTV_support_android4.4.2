@@ -29,3 +29,9 @@
 公开仓库标准 GitHub Actions 构建继续保留；本地测试与构建也可独立执行。正式发布在用户合并 PR 后进行，不把测试包当成已发布版本。
 
 本项目与红果官方无关联，平台接口变化可能导致功能失效。代码采用 GPL-3.0，来源与依赖说明见 [NOTICE](kotlin-tv/NOTICE.md)。`android/`、`ios/`、`src/`、`server/` 保留旧实现，原生 APK 不依赖这些目录。
+
+# 致谢
+
+感谢[上游大佬N3urda](https://github.com/N3urda/hongguoTV)，本仓库得以在其基础上继续开发。
+
+相较于上游版本，本仓库将minSDK下探至android4.4.2, 也只接受android4.4.2版本的反馈,其他功能跟随上游

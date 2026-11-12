@@ -35,6 +35,9 @@ internal object ModernTrust {
         }.onFailure { Log.w(TAG, "bundled CA anchors unavailable", it) }
             .getOrNull()
 
+    /** Platform anchors only; the fallback when the bundled CA package cannot be read. */
+    fun system(): X509TrustManager? = runCatching { trustManager(null) }.getOrNull()
+
     private fun trustManager(store: KeyStore?): X509TrustManager? =
         TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
             .apply { init(store) }

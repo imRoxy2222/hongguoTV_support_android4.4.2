@@ -30,13 +30,18 @@ class HongguoTvApplication : MultiDexApplication() {
  * HTTPS call fails with "Trust anchor for certification path not found". The
  * supplement only adds public roots that the system store is missing — the platform
  * anchors still decide first and certificate verification is never disabled.
+ *
+ * The trust manager is installed next to the socket factory: the client factory
+ * hands both to OkHttp, which cannot recover the trust manager from our wrapper
+ * by reflection (see HttpCompat).
  */
 private fun enableTls12(application: HongguoTvApplication) {
     runCatching {
-        val context = SSLContext.getInstance("TLS")
         val supplement = ModernTrust.supplement(application)
-        context.init(null, supplement?.let { arrayOf<javax.net.ssl.TrustManager>(it) }, null)
-        HttpCompat.installTlsSocketFactory(Tls12SocketFactory(context.socketFactory))
+        val trustManager = supplement ?: ModernTrust.system() ?: return@runCatching
+        val context = SSLContext.getInstance("TLS")
+        context.init(null, arrayOf<javax.net.ssl.TrustManager>(trustManager), null)
+        HttpCompat.installTlsSocketFactory(Tls12SocketFactory(context.socketFactory), trustManager)
         if (BuildConfig.DEBUG) Log.i("HongguoTV", "TLS 1.2 + ${if (supplement == null) "system" else "supplemented"} trust store installed")
     }.onFailure { Log.w("HongguoTV", "TLS 1.2 enablement failed", it) }
 }

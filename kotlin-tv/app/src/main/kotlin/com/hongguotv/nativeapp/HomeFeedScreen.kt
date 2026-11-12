@@ -223,7 +223,7 @@ internal class HomeFeedScreen(
         val carousel = FrameLayout(activity).apply { clipChildren = false; clipToPadding = false }
         fun side(image: ImageView, caption: TextView, delta: Int): View = FrameLayout(activity).apply {
             background = TvVisual.panel(activity)
-            clipToOutline = true
+            Api21Compat.clipToOutline(this)
             alpha = .85f
             scaleY = .94f
             addView(image, FrameLayout.LayoutParams(-1, -1))
@@ -247,8 +247,8 @@ internal class HomeFeedScreen(
         carousel.addView(previousCard, FrameLayout.LayoutParams(dp(112), -1, Gravity.START))
         carousel.addView(nextCard, FrameLayout.LayoutParams(dp(112), -1, Gravity.END))
         hero.background = TvVisual.panel(activity)
-        hero.clipToOutline = true
-        hero.elevation = dp(8).toFloat()
+        Api21Compat.clipToOutline(hero)
+        Api21Compat.setElevation(hero, dp(8))
         hero.setPadding(dp(2), dp(2), dp(2), dp(2))
         hero.addView(cover, FrameLayout.LayoutParams(-1, -1))
         hero.addView(View(activity).apply {
@@ -266,7 +266,7 @@ internal class HomeFeedScreen(
         stage.isClickable = true
         stage.contentDescription = "左右换剧，确定暂停或继续，下键进入操作"
         stage.background = TvVisual.panel(activity)
-        stage.clipToOutline = true
+        Api21Compat.clipToOutline(stage)
         stage.addView(playback.view, FrameLayout.LayoutParams(-1, -1))
         stage.addView(poster, FrameLayout.LayoutParams(-1, -1))
         stage.addView(tag, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START))
@@ -355,7 +355,7 @@ internal class HomeFeedScreen(
         }
         stage.setOnFocusChangeListener { _, focused ->
             hero.background = TvStyle.card(activity, focused)
-            hero.animate().translationZ(if (focused) dp(4).toFloat() else 0f).setDuration(180).start()
+            Api21Compat.animateTranslationZ(hero, if (focused) dp(4) else 0)
         }
         stage.setOnClickListener { toggle() }
         hero.setOnClickListener { toggle() }

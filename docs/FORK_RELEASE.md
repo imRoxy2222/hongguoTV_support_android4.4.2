@@ -36,8 +36,12 @@ git push origin feat/android-4.4.2-api19
 
 ### 3.1 版本号怎么来
 
-`versionName` / `versionCode` 的唯一来源是 `kotlin-tv/app/build.gradle.kts`，合并上游后**天然与上游版本一致**，
-不要手改。上游 tag 是 `kotlin-v0.13.2`，本 fork 打成 `a44-v0.13.2`（前缀 `a44` = Android 4.4.2）。
+规则与自动化见 [RELEASE_POLICY.md](RELEASE_POLICY.md)：`a44-v<上游版本>-<N>`，
+`versionCode = 上游 versionCode * 100 + N`。`versionName` / `versionCode` 的唯一来源是
+`kotlin-tv/app/build.gradle.kts`，由 `scripts/next_version.py --write` 自动写入，**不要手改**。
+前缀 `a44` = Android 4.4.2。
+
+当前：上游 `kotlin-v0.13.2`（versionCode 17）→ 本 fork `a44-v0.13.2-1` / `0.13.2-1` / 1701。
 
 ### 3.2 操作步骤
 
@@ -46,20 +50,26 @@ cd /home/frk2222/code/hongguoTV_support_android4.4.2
 
 # 1) 确认工作区干净、已合并最新上游
 git checkout feat/android-4.4.2-api19
+git fetch upstream --prune --tags
 git status
-grep -n "versionCode\|versionName" kotlin-tv/app/build.gradle.kts
-# 输出应形如 versionCode = ... ?: 17 / versionName = ... ?: "0.13.2"
 
-# 2) 打标签（标签版本号 = 上面看到的 versionName）
-git tag a44-v0.13.2
+# 2) 计算并写入版本号（不要手动改数字）
+python3 scripts/next_version.py --write
 
-# 3) 只推这一个标签（切勿 git push --tags，会把上游 kotlin-v* 标签一起推上去）
-git push origin a44-v0.13.2
+# 3) 提交版本号，再按脚本输出的 fork_tag 打标签
+git add kotlin-tv/app/build.gradle.kts
+git commit -m "chore(release): 0.13.2-1 (versionCode 1701)"
+git tag a44-v0.13.2-1
+
+# 4) 先推分支，再单独推这一个标签（切勿 git push --tags，会带上游 kotlin-v* 标签）
+git push origin feat/android-4.4.2-api19
+git push origin a44-v0.13.2-1
 ```
 
 推送标签后 `.github/workflows/fork-release.yml` 自动执行：
 
-1. 校验标签格式 `a44-vX.Y.Z`，且与源码 `versionName`、`minSdk 19` 一致，不一致直接失败；
+1. 校验标签格式 `a44-vX.Y.Z-N`，且与源码 `versionName`、`minSdk 19` 一致；`versionCode % 100 == N`，
+   且大于上次已发布 Release 的 `versionCode`。任一不符直接失败；
 2. 从 Secrets 还原签名密钥到 runner 临时目录（结束即删）；
 3. 跑 `:core:test`、`:app:testDebugUnitTest`、`:app:lintRelease`、`:app:assembleRelease -PreleaseAbis=true`；
 4. 逐个 APK 校验包名、版本、`minSdk 19`、**v1(JAR) 签名**（KitKat 必需）；
@@ -102,11 +112,22 @@ Windows 路径：`\\wsl$\Debian\home\frk2222\hongguotv-fork-signing\SECRETS.txt`
 ## 5. 打错了怎么办
 
 ```sh
-# 标签打错（尚未推送）：本地删除重打
-git tag -d a44-v0.13.2
+# 标签打错（尚未推送）：本地删除后按脚本输出重打
+git tag -d a44-v0.13.2-1
 
-# 已推送且 Release 已生成：先删 Release，再删远端标签
-git push origin :refs/tags/a44-v0.13.2
+# 已推送、但流水线在构建阶段失败且未产出 Release：删除远端标签后重打同一标签
+git push origin :refs/tags/a44-v0.13.2-1
+```
+
+**Release 一旦创建，就不要再删标签或覆盖附件**，改用下一个修订号重发：
+
+```sh
+python3 scripts/next_version.py --force --write    # 0.13.2-1 → 0.13.2-2 / 1702
+git add kotlin-tv/app/build.gradle.kts
+git commit -m "chore(release): 0.13.2-2 (versionCode 1702)"
+git tag a44-v0.13.2-2
+git push origin feat/android-4.4.2-api19
+git push origin a44-v0.13.2-2
 ```
 
 注意：workflow 检测到同名 Release 已存在时会**拒绝覆盖**并失败，这是刻意设计，避免已发布产物被替换。
@@ -117,15 +138,18 @@ git push origin :refs/tags/a44-v0.13.2
    不能覆盖安装；此后本 fork 的版本之间可以正常覆盖升级。
 2. **应用内自动更新指向本仓库**（`kotlin-tv/core/.../AppUpdates.kt` 的 `REPOSITORY` =
    `imRoxy2222/hongguoTV_support_android4.4.2`）。客户端读取 `releases/latest/download/update.json`，
-   该文件由 `fork-release.yml` 每次发布时自动生成，`tag` 前缀为 `a44-v`，`apk.name` 固定为
+   该文件由 `fork-release.yml` 每次发布时自动生成，`tag` 形如 `a44-v0.13.2-1`，`apk.name` 固定为
    `hongguotv-kotlin-<ver>-android4.apk`。客户端仍会校验 APK 包名、版本、`minSdk` 与已安装签名，
    因此只有本仓库同证书的正式包能被安装。
    注意：`AppUpdate.parse` 的 tag 正则同时接受 `kotlin-v` 与 `a44-v`；若标签前缀再次更换，需同步放宽该正则。
-3. **versionCode 跟随上游**（0.13.2 对应 17）。若同一上游版本要重发一次，需先手动递增
-   `kotlin-tv/app/build.gradle.kts` 的默认 `versionCode`，否则新包无法覆盖旧包。
+3. **versionCode 由规则生成**（`上游 versionCode * 100 + N`；0.13.2 的第 1 次发布为 1701），
+   不再等同于上游的 17。同一上游版本重发时只增加 `N`，用
+   `python3 scripts/next_version.py --force` 完成，不要手动改数字。
 
 ## 7. 相关文件
 
+- `docs/RELEASE_POLICY.md`：版本号规则、发版判定与自动化流程（定时任务按此执行）
+- `scripts/next_version.py`：计算下一个 `<上游版本>-<N>` 与 `versionCode`
 - `.github/workflows/fork-release.yml`：本 fork 的发布流水线（标签触发）
 - `.github/workflows/kotlin-release.yml`：上游流水线，`github.repository == 'N3urda/hongguoTV'` 保护，
   fork 上永不运行，保持与上游一致以便合并

@@ -98,13 +98,15 @@ class AppUpdatesTest {
         assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(json().put("tag", "../../other").toString()) }
     }
     @Test fun forkTagPrefixIsAcceptedAndOtherPrefixesAreRejected() {
-        val fork = json().put("tag", "a44-v0.13.2")
+        val fork = json().put("tag", "a44-v0.13.2-1").put("versionName", "0.13.2-1")
         val parsed = AppUpdate.parse(fork.toString())
-        assertEquals("a44-v0.13.2", parsed.tag)
+        assertEquals("a44-v0.13.2-1", parsed.tag)
         assertEquals(
-            "https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases/download/a44-v0.13.2/hongguotv-kotlin-0.9.0-build.1-android8.apk",
+            "https://github.com/imRoxy2222/hongguoTV_support_android4.4.2/releases/download/a44-v0.13.2-1/hongguotv-kotlin-0.9.0-build.1-android8.apk",
             parsed.downloadUrl,
         )
+        // 无修订后缀的历史格式仍需可解析。
+        assertEquals("a44-v0.13.2", AppUpdate.parse(json().put("tag", "a44-v0.13.2").toString()).tag)
         for (tag in listOf("v0.13.2", "a44-0.13.2", "a44-v", "preview-v1.0.0", "other-v1.0.0")) {
             assertThrows(IllegalArgumentException::class.java) { AppUpdate.parse(json().put("tag", tag).toString()) }
         }

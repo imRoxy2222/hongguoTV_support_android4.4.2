@@ -22,7 +22,9 @@ class ReleaseContractTest(unittest.TestCase):
 
     def test_current_source_version(self):
         build = (ROOT / 'kotlin-tv/app/build.gradle.kts').read_text()
-        self.assertEqual(('0.13.2', 17, 19), r.source_version(build, 'kotlin-v0.13.2'))
+        # 本 fork 的版本规则见 docs/RELEASE_POLICY.md：<上游版本>-<N> / 上游 code * 100 + N。
+        # 上游升版后这里需要随 scripts/next_version.py 的输出一起更新。
+        self.assertEqual(('0.13.2-1', 1701, 19), r.source_version(build, 'kotlin-v0.13.2-1'))
 
     def test_source_version(self):
         self.assertEqual(('0.10.0', 10, 19), r.source_version(self.build, self.tag))

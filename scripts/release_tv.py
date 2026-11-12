@@ -26,9 +26,11 @@ def require(condition, message):
 
 
 def version_tuple(tag):
-    match = re.fullmatch(r'kotlin-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)', tag)
-    require(match is not None, 'Expected stable tag kotlin-vMAJOR.MINOR.PATCH')
-    return tuple(map(int, match.groups()))
+    # 允许可选修订后缀：本 fork 使用 <上游版本>-<N>（如 0.13.2-1），
+    # 上游的纯三段标签行为不变。比较时只看主版本，修订位由 versionCode 表达。
+    match = re.fullmatch(r'kotlin-v(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(\d+))?', tag)
+    require(match is not None, 'Expected stable tag kotlin-vMAJOR.MINOR.PATCH[-N]')
+    return tuple(map(int, match.groups()[:3]))
 
 
 def source_version(text, tag):

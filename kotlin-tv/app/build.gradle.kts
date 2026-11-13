@@ -19,6 +19,7 @@ android {
     compileSdk = 36
     defaultConfig {
         applicationId = "com.hongguotv.nativeapp"
+        manifestPlaceholders["appLabel"] = "红果 TV 原生版"
         minSdk = 19
         // ART loads secondary dex files natively only from API 21; KitKat needs MultiDex.
         multiDexEnabled = true
@@ -61,6 +62,11 @@ android {
         }
     }
     buildTypes {
+        getByName("debug") {
+            applicationIdSuffix = ".debug"
+            versionNameSuffix = "-debug.20261113"
+            manifestPlaceholders["appLabel"] = "红果 TV 测试版"
+        }
         getByName("release") {
             signingConfig = signingConfigs.getByName("delivery")
             isMinifyEnabled = true

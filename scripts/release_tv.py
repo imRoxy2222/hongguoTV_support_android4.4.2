@@ -17,7 +17,7 @@ REPOSITORY = 'imRoxy2222/hongguoTV_support_android4.4.2'
 PACKAGE = 'com.hongguotv.nativeapp'
 CERTIFICATE = '3579f7a8a91bbbc44688db60fb16a5561921784af23fa92f39b849086d76ca98'
 ROOT = Path(__file__).resolve().parents[1]
-NOTES = '优化首页自动连续播放：切集时保留上一集画面，下一集准备较慢时也避免先清空画面；新增 3× 倍速，支持设为默认播放速度；更换为像素红果电视图标。继续支持 Android 5.0+、原证书覆盖升级及通用、ARM32、ARM64 三种安装包。'
+NOTES = '手机控制台片单改为收藏、历史、预约、稍后看二级标签；本机与账户收藏/历史合并去重，历史按最近观看排序并使用较新的续播进度。找剧筛选默认展开为换行区块，支持分批展示更多并在刷新后保留状态；影片卡片新增手机端懒加载封面；手机推送播放后，电视返回进入当前剧集详情与选集。包含主分支此前的电视端收藏/历史合并、独立搜索与屏幕键盘、手机授权与播放控制、像素电视标识及浏览界面优化。继续支持 Android 5.0+、原证书覆盖升级及通用、ARM32、ARM64 三种安装包。'
 
 
 def require(condition, message):
@@ -148,7 +148,7 @@ def prepare_apks(version, code, sdk, out):
     for path, _, abis in sources:
         validate_apk(run(str(buildtools / 'aapt'), 'dump', 'badging', str(path)),
                      run(str(buildtools / 'apksigner'), 'verify', '--verbose', '--min-sdk-version',
-                         '21', '--print-certs', str(path)), version, code, sdk)
+                         str(sdk), '--print-certs', str(path)), version, code, sdk)
         validate_apk_abis(path, abis)
     apks = []
     for path, suffix, _ in sources:

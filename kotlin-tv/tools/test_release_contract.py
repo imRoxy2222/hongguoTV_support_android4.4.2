@@ -23,7 +23,7 @@ class ReleaseContractTest(unittest.TestCase):
     def test_current_source_version(self):
         build = (ROOT / 'kotlin-tv/app/build.gradle.kts').read_text()
         # 本 fork 的版本规则见 docs/RELEASE_POLICY.md：<上游版本>-<N> / 上游 code * 100 + N。
-        # 上游升版后这里需要随 scripts/next_version.py 的输出一起更新。
+        # 上游 0.14.0 合并后由 scripts/next_version.py --write 单独升版，此处校验当前源码版本。
         self.assertEqual(('0.13.2-1', 1701, 19), r.source_version(build, 'kotlin-v0.13.2-1'))
 
     def test_source_version(self):
@@ -103,7 +103,7 @@ class ReleaseContractTest(unittest.TestCase):
             root = Path(tmp)
             _, out = self.make_apks(root)
             with patch.object(r, 'ROOT', root), patch.dict(r.os.environ, ANDROID_HOME=tmp), patch.object(r, 'run', side_effect=[self.badging, self.signature] * 3) as run:
-                paths = r.prepare_apks('0.10.0', 10, 21, out)
+                paths = r.prepare_apks('0.10.0', 10, 19, out)
             self.assertEqual(['hongguotv-kotlin-0.10.0-' + suffix + '.apk' for suffix in ['android5', 'arm32-v7a', 'arm64-v8a']], [p.name for p in paths])
             self.assertEqual(6, run.call_count)
             for path, (_, _, abis) in zip(paths, r.APK_VARIANTS):
@@ -116,7 +116,7 @@ class ReleaseContractTest(unittest.TestCase):
                 directory, out = self.make_apks(root)
                 (directory / f'app-{variant}-release.apk').unlink()
                 with patch.object(r, 'ROOT', root), patch.dict(r.os.environ, ANDROID_HOME=tmp), patch.object(r, 'run') as run, self.assertRaisesRegex(ValueError, 'requires universal, ARM32 and ARM64'):
-                    r.prepare_apks('0.10.0', 10, 21, out)
+                    r.prepare_apks('0.10.0', 10, 19, out)
                 run.assert_not_called()
                 self.assertEqual([], list(out.iterdir()))
 
@@ -127,7 +127,7 @@ class ReleaseContractTest(unittest.TestCase):
             (directory / 'output-metadata.json').write_text(json.dumps(dict(elements=[
                 dict(outputFile='app-release.apk', versionCode=10, versionName='0.10.0', filters=[])])))
             with patch.object(r, 'ROOT', root), patch.dict(r.os.environ, ANDROID_HOME=tmp), patch.object(r, 'run') as run, self.assertRaisesRegex(ValueError, 'current build output'):
-                r.prepare_apks('0.10.0', 10, 21, out)
+                r.prepare_apks('0.10.0', 10, 19, out)
             run.assert_not_called()
 
     def test_wrong_architecture_or_missing_decoder_is_rejected(self):
@@ -145,7 +145,7 @@ class ReleaseContractTest(unittest.TestCase):
             root = Path(tmp)
             _, out = self.make_apks(root)
             with patch.object(r, 'ROOT', root), patch.dict(r.os.environ, ANDROID_HOME=tmp), patch.object(r, 'run', side_effect=[self.badging, self.signature, self.badging, self.signature.replace(r.CERTIFICATE, '0' * 64)]), self.assertRaises(ValueError):
-                r.prepare_apks('0.10.0', 10, 21, out)
+                r.prepare_apks('0.10.0', 10, 19, out)
             self.assertEqual([], list(out.iterdir()))
 
     def test_repository_and_workflow_contract(self):

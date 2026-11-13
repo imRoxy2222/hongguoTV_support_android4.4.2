@@ -7,7 +7,7 @@
     <style name="AppThemeCore" parent="android:style/Theme.Holo.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowActionModeOverlay">true</item>
-        <item name="android:windowBackground">#070A0F</item>
+        <item name="android:windowBackground">#202B3B</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:alertDialogTheme">@style/TvDialogTheme</item>
     </style>
@@ -16,7 +16,7 @@
     <style name="TvDialogThemeCore" parent="android:style/Theme.Holo.Dialog">
         <item name="android:windowBackground">@drawable/tv_dialog_surface</item>
         <item name="android:textColorPrimary">#F2F4F8</item>
-        <item name="android:textColorSecondary">#A8B2C4</item>
+        <item name="android:textColorSecondary">#C0CCDE</item>
         <item name="android:backgroundDimAmount">0.6</item>
     </style>
     <style name="TvDialogTheme" parent="TvDialogThemeCore" />

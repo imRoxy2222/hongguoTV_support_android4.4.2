@@ -3,8 +3,9 @@
 This branch lowers the minimum SDK of the native APK from API 21 (Android 5.0) to
 API 19 (Android 4.4.2 / KitKat). `targetSdk` is now **19** as well, so the app runs
 entirely on KitKat-era platform behaviour; `compileSdk` stays 36 so modern build
-tooling and lint still apply. `versionCode` 13 / `versionName` 0.11.1 are unchanged.
-The package name and the original signing configuration are preserved.
+tooling and lint still apply. The package name and the original signing
+configuration are preserved; releases follow the `<upstream>-<N>` version rule in
+[docs/RELEASE_POLICY.md](../docs/RELEASE_POLICY.md).
 
 The first real-device run on a MGV2000-UAV5_GD (Android 4.4.2, armeabi-v7a,
 1280x720, 384 MB heap) is recorded under "Real-device verification" below. It found
@@ -139,6 +140,42 @@ historical `android5.apk` and `android8.apk` filenames.
   a minSdk the APK was not built with; a debug APK cannot overwrite the official
   signed APK. Subsequent updates use the new metadata parser.
 - See [AUTO_UPDATES.md](AUTO_UPDATES.md) for the release workflow.
+
+## Upstream 0.14.0 sync (2026-11-13)
+
+`main` was fast-forwarded to upstream `21ec922` (0.14.0) and merged into this
+branch. Upstream 0.14.0 adds the LAN phone console (`PhoneControlServer`,
+`PhoneControlPage`, `PhoneConsole`, `PhoneControlCatalog`), a separate TV search
+page, library/filter rework, phone-login rate limiting and the pixel-TV branding.
+All of those features were kept, with the following API 19 adaptations:
+
+- **OkHttp 3.12 / Okio 1.x getters.** New upstream code used OkHttp 4.x Kotlin
+  properties (`url.scheme`, `response.body`, `request.method`, `http.dispatcher`,
+  `request.url.encodedPath`) and the `ResponseBody.Companion.toResponseBody`
+  extension. They were migrated to the Java getters and to
+  `com.hongguotv.core.compat.toResponseBody`; `Source.buffer()` became
+  `okio.Okio.buffer(source)`. Affected: `WebLogin.authorizationAppUrl`,
+  `PhoneConsole`, `PhoneLoginTest`, `PhoneConsoleTest`, `InteractionFlowTest`,
+  `AccountFavoriteActionsTest`, `AccountReservationsTest`.
+- **Launcher icon.** `AndroidManifest.xml` adopts upstream `@mipmap/ic_launcher`
+  and the `${appLabel}` placeholder while keeping the mandatory
+  `.HongguoTvApplication` (MultiDex + TLS 1.2 + bundled CA supplement).
+  `mipmap-anydpi-v26` adaptive icons are ignored on KitKat; density-specific PNGs
+  are used instead.
+- **Theme.** Upstream's brighter palette (`#202B3B`, `#C0CCDE`) is applied to both
+  `values/styles.xml` (Holo baseline) and `values-v21/styles.xml`; the API 21-only
+  `android:colorAccent` stays out of the KitKat baseline.
+- **Build config.** `minSdk` / `targetSdk` 19, `multiDexEnabled`, the universal-APK
+  release contract and the `<upstream>-<N>` version rule are unchanged; upstream's
+  `appLabel` placeholder and debug `applicationIdSuffix` were adopted.
+- **Release contract.** Offline tests and `apksigner --min-sdk-version` now pass
+  the real SDK (19) instead of the upstream hard-coded 21.
+
+Post-merge verification on JDK 17: `:core:test`, `:app:testDebugUnitTest`,
+`:app:lintRelease` and the offline `test_release_contract.py` suite all pass. The
+source version still reads `0.13.2-1` / 1701 — bump it with
+`python3 scripts/next_version.py --write` (expected `0.14.0-1` / 1801) and update
+`test_current_source_version` before tagging a release.
 
 ## Build and verification requirements
 

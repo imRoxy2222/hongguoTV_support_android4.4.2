@@ -358,11 +358,14 @@ class AppUpdater(
                 "com.google.android.packageinstaller" to "com.android.packageinstaller.PackageInstallerActivity",
             )
 
-        /** 先尝试内容授权入口，再尝试 Android 6 外部副本的旧式文件入口。 */
+        /** 先尝试 Android 6 外部副本的旧式文件入口，再尝试内容授权入口。 */
         internal fun installerIntents(uri: Uri, fileUri: Uri?): List<Intent> {
             val type = "application/vnd.android.package-archive"
             val sources = mutableListOf<Intent>()
-            val uris = listOfNotNull(uri, fileUri?.takeIf { Build.VERSION.SDK_INT < 24 })
+            // KitKat 的 PackageInstaller 只接受 file://，遇到 content:// 会打印
+            // "Unsupported scheme content" 并立刻退出；而 startActivity 已经成功返回，
+            // 调用方不会再试下一个入口，表现就是"点了安装没反应"。因此有外部副本时必须先试它。
+            val uris = listOfNotNull(fileUri?.takeIf { Build.VERSION.SDK_INT < 24 }, uri)
             for (source in uris) {
                 if (Build.VERSION.SDK_INT < 26)
                     sources += Intent(Intent.ACTION_INSTALL_PACKAGE).setDataAndType(source, type)

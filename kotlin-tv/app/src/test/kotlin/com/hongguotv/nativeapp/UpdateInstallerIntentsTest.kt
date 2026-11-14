@@ -31,6 +31,13 @@ class UpdateInstallerIntentsApi23Test {
     }
 
     @Test
+    fun api23TriesLegacyFileEntryFirst() {
+        // KitKat 安装器只认 file://，content:// 会让它直接退出，因此顺序必须是 file 优先。
+        val intents = AppUpdater.installerIntents(content, file)
+        org.junit.Assert.assertEquals("file", intents.first().data?.scheme)
+    }
+
+    @Test
     fun invalidExternalCopyIsNotPublishedAndTemporaryFileIsRemoved() {
         val directory = java.nio.file.Files.createTempDirectory("legacy-update-test").toFile()
         try {

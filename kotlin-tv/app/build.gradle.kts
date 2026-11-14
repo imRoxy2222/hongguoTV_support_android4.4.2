@@ -31,8 +31,8 @@ android {
         // 版本规则见 docs/RELEASE_POLICY.md：versionName = <上游版本>-<N>，
         // versionCode = 上游 versionCode * 100 + N，N 是该上游版本的第几次 fork 发布。
         // 由 scripts/next_version.py --write 自动维护，不要手改。
-        versionCode = System.getenv("HONGGUOTV_VERSION_CODE")?.toInt() ?: 1801
-        versionName = System.getenv("HONGGUOTV_VERSION_NAME") ?: "0.14.0-1"
+        versionCode = System.getenv("HONGGUOTV_VERSION_CODE")?.toInt() ?: 2101
+        versionName = System.getenv("HONGGUOTV_VERSION_NAME") ?: "0.16.0-1"
     }
     // Formal publishing always requests all three installable APKs.
     splits {

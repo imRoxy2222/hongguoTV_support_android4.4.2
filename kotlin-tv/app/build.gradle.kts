@@ -92,6 +92,13 @@ android {
     packaging { resources.excludes += setOf("META-INF/versions/**", "META-INF/*.kotlin_module") }
 }
 
+// Robolectric installs Conscrypt's JSSE provider while setting up the application, but
+// conscrypt-android ships only Android JNI libraries, so the provider cannot load on a
+// desktop JVM. Keep it off the unit-test runtime classpath; production wires it itself.
+configurations.matching { it.name.endsWith("UnitTestRuntimeClasspath") }.configureEach {
+    exclude(group = "org.conscrypt", module = "conscrypt-android")
+}
+
 dependencies {
     testImplementation("junit:junit:4.13.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:3.12.13")
@@ -104,6 +111,9 @@ dependencies {
     implementation("com.google.zxing:core:3.5.3")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs_nio:2.1.5")
     implementation("com.squareup.okhttp3:okhttp:3.12.13")
+    // API 19's JSSE exposes no AEAD cipher suite, which modern hosts such as GitHub and
+    // its accelerators require. Conscrypt bundles BoringSSL so TLS 1.2 actually negotiates.
+    implementation("org.conscrypt:conscrypt-android:2.5.2")
     implementation(project(":decoder-ffmpeg"))
     implementation(project(":core")) { exclude(group = "org.json") }
     implementation("androidx.media3:media3-exoplayer:1.4.1")

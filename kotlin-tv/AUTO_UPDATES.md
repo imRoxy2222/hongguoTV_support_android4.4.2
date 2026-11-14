@@ -73,4 +73,6 @@ release_tv.py prepare() 已改为：APK 不含 libffmpegJNI.so 时放行，若�
 
 仅允许固定 HTTPS 域名，镜像错误页面、长度异常或 SHA-256 不匹配会回退。安装前继续验证实际包名、版本与原安装签名。公开镜像不保证持续可用或国内各地区速度；旧客户端需先安装本版才能使用加速。
 
+更新源历来要求 AEAD 加密套件（AES-GCM），而 Android 4.4 自带 TLS 栈只有 CBC，握手会被拒绝（`SSLProtocolException: sslv3 alert handshake failure`）。因此 API 19 客户端用 Conscrypt（`conscrypt-android`）提供 TLS 1.2 + AES-GCM，详见 `ANDROID_COMPATIBILITY.md`；没有它时“检查更新”必然失败。
+
 后台检查、下载完成和安装结果不主动弹窗；在设置 → 版本与更新中主动安装，仍由系统确认。

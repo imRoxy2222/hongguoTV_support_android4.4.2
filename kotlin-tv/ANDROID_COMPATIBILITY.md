@@ -51,10 +51,20 @@ Compatibility shims were added so business logic did not need to change:
 
 ## Runtime compatibility layer
 
-- **TLS 1.2 on API 19.** API 19 supports TLS 1.2, but newly created sockets enable
-  only TLS 1.0 by default, and modern APIs/CDNs may refuse it. For `SDK_INT < 21`,
-  `HongguoTvApplication` installs a custom `Tls12SocketFactory` that enables
-  `TLSv1.2`, `TLSv1.1`, `TLSv1` in order on each `SSLSocket`.
+- **TLS 1.2 on API 19 (`Conscrypt`).** API 19 supports TLS 1.2, but newly created
+  sockets enable only TLS 1.0 by default, and — more importantly — its JSSE exposes
+  **no AEAD cipher suite** (54 suites, zero GCM/ChaCha20). GitHub and every public
+  accelerator now require AEAD, so the handshake ends in
+  `SSLProtocolException: sslv3 alert handshake failure` (`alert 40`). For
+  `SDK_INT < 21`, `HongguoTvApplication` therefore creates the `SSLContext` from
+  `org.conscrypt:conscrypt-android`, whose bundled BoringSSL provides TLS 1.2 with
+  AES-GCM; the native library adds ~1.2 MB per ABI. If `Conscrypt.newProvider()`
+  cannot load on some firmware, it falls back to the platform stack wrapped in
+  `Tls12SocketFactory`, which enables `TLSv1.2`, `TLSv1.1`, `TLSv1` on each
+  `SSLSocket`. R8 keeps all `org.conscrypt` classes (they are reached through JNI)
+  and suppresses the two optional platform adapters; unit tests exclude
+  `conscrypt-android` because Robolectric would otherwise load its JNI provider on
+  the desktop JVM.
 - **Bundled public CA supplement (`ModernTrust.kt`).** KitKat's system trust store is
   the 2013 CA set. The media API chains to `RapidSSL TLS RSA CA G1` rooted at
   **DigiCert Global Root G2**, which KitKat does not ship, so every HTTPS call failed

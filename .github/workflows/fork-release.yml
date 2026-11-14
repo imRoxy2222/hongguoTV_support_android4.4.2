@@ -167,6 +167,19 @@ jobs:
           git archive --format=zip --prefix="hongguotv-${GITHUB_REF_NAME}/" \
             --output "dist/hongguotv-${GITHUB_REF_NAME}-source.zip" HEAD
 
+          # 变更记录：上一个 a44-v* 标签（没有则用最近的任意标签）到本标签之间的提交。
+          PREV_TAG="$(git describe --tags --abbrev=0 --match 'a44-v*' "${GITHUB_REF_NAME}^" 2>/dev/null \
+            || git describe --tags --abbrev=0 "${GITHUB_REF_NAME}^" 2>/dev/null || true)"
+          if [[ -n "$PREV_TAG" ]]; then
+            CHANGELOG="$(git log --no-merges --max-count=50 \
+              --pretty=format:'- %h: %s' "${PREV_TAG}..${GITHUB_REF_NAME}")"
+            [[ -n "$CHANGELOG" ]] || CHANGELOG="（无提交记录）"
+            CHANGELOG_HEADING="### 自 ${PREV_TAG} 以来的修改"
+          else
+            CHANGELOG="（首次发布，无对比基线）"
+            CHANGELOG_HEADING="### 修改记录"
+          fi
+
           printf '%s\n' \
             "红果 TV（Android 4.4.2 / API 19 分支）${VERSION}，versionCode ${VERSION_CODE}。" \
             "" \
@@ -178,6 +191,10 @@ jobs:
             "- 签名说明：本仓库使用自有证书，与上游 N3urda/hongguoTV 的正式签名不同，" \
             "  从上游版本切换过来必须【先卸载】上游 APK（会清除本机记录），不能覆盖安装。" \
             "- 源码提交：${GITHUB_SHA}；附件含 APK、对应源码 ZIP、update.json、SHA256SUMS。" \
+            "" \
+            "$CHANGELOG_HEADING" \
+            "" \
+            "$CHANGELOG" \
             > dist/notes.md
 
           # 应用内自更新元数据：schema 与上游一致，客户端读 latest/download/update.json。

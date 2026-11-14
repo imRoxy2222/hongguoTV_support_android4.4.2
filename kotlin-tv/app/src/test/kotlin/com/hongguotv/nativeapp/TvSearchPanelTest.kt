@@ -33,7 +33,6 @@ class TvSearchPanelTest {
                 TextView(activity).apply { id = View.generateViewId() },
                 { emptyList() },
                 {},
-                {},
             )
         try {
             activity.setContentView(panel)
@@ -42,14 +41,64 @@ class TvSearchPanelTest {
                 View.MeasureSpec.makeMeasureSpec(300, View.MeasureSpec.EXACTLY),
             )
             panel.layout(0, 0, 640, 300)
-            assertTrue(panel.results.width >= 280)
-            val scroll = panel.getChildAt(0) as ScrollView
+            assertFalse(panel.showingResults)
+            val scroll = (panel.getChildAt(0) as ViewGroup).getChildAt(0) as ScrollView
             assertTrue(scroll.getChildAt(0).measuredHeight > scroll.height)
             assertFalse(texts(panel).any { it.text == "返回分类" })
         } finally {
             panel.suggestions.close()
             controller.pause().stop().destroy()
         }
+    }
+
+    @Test
+    fun candidatesUseSpatialGridAndResultsReturnToSelectedWordAndKeyboard() {
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        val activity = controller.get()
+        val panel = TvSearchPanel(activity, "", listOf("一", "二", "三", "四"),
+            TextView(activity).apply { id = View.generateViewId() }, { emptyList() }, {})
+        try {
+            activity.setContentView(panel)
+            val key = texts(panel).first { it.text == "R" }
+            key.requestFocus()
+            val first = texts(panel).first { it.text == "一" }
+            val third = texts(panel).first { it.text == "三" }
+            assertEquals(third.id, first.nextFocusDownId)
+            assertEquals(key.id, first.nextFocusLeftId)
+            third.requestFocus()
+            val state = panel.capture()
+            panel.showResults()
+            assertTrue(panel.showingResults)
+            assertTrue(panel.back())
+            assertTrue(third.hasFocus())
+            panel.restore(state)
+            panel.showResults()
+            panel.back()
+            assertTrue(third.hasFocus())
+            assertFalse(panel.back())
+        } finally {
+            panel.suggestions.close()
+            controller.pause().stop().destroy()
+        }
+    }
+
+    @Test
+    fun longSuggestionsKeepEqualColumnsAndRestoreDetachedFocus() {
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        val activity = controller.get()
+        val panel = TvSearchPanel(activity, "", emptyList(), TextView(activity).apply { id = View.generateViewId() }, { emptyList() }, {})
+        try {
+            val state = TvSearchPanel.EditState("cs", listOf("重生螳螂觉醒无限吞噬进化", "重生", "重生归来", "另一个特别长的剧名"), 1, -1, 17)
+            panel.restore(state)
+            panel.showResults()
+            activity.setContentView(panel)
+            panel.back()
+            panel.measure(View.MeasureSpec.makeMeasureSpec(960, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(520, View.MeasureSpec.EXACTLY))
+            panel.layout(0, 0, 960, 520)
+            assertTrue(panel.suggestions.viewAt(1)!!.hasFocus())
+            assertTrue(kotlin.math.abs(panel.suggestions.viewAt(0)!!.width - panel.suggestions.viewAt(1)!!.width) <= 1)
+            assertTrue(panel.suggestions.viewAt(0)!!.width > 100)
+        } finally { panel.suggestions.close(); controller.pause().stop().destroy() }
     }
 
     private fun texts(view: View): List<TextView> =
@@ -63,7 +112,6 @@ class TvSearchPanelTest {
         val activity = controller.get()
         val upper = TextView(activity).apply { id = View.generateViewId() }
         var searched = ""
-        var phone = false
         val panel =
             TvSearchPanel(
                 activity,
@@ -72,12 +120,11 @@ class TvSearchPanelTest {
                 upper,
                 { emptyList() },
                 { searched = it },
-                { phone = true },
             )
         try {
             activity.setContentView(panel)
             fun click(label: String) =
-                texts(panel).first { it.text.toString() == label }.performClick()
+                texts(panel).first { it.isClickable && it.text.toString() == label }.performClick()
             click("A")
             click("B")
             assertEquals("ab", panel.input.text.toString())
@@ -96,8 +143,10 @@ class TvSearchPanelTest {
             assertEquals("历史剧名", searched)
             click("清空")
             assertTrue(panel.input.text.isEmpty())
-            click("手机控制台")
-            assertTrue(phone)
+            click("打开输入法")
+            assertTrue(panel.input.showSoftInputOnFocus)
+            assertTrue(panel.input.hasFocus())
+            assertFalse(texts(panel).any { it.text == "中文输入" || it.text == "手机控制台" })
             assertFalse(texts(panel).any { it.text == "返回分类" })
             panel.input.setText("a".repeat(80))
             panel.input.setSelection(80)
@@ -110,7 +159,7 @@ class TvSearchPanelTest {
     }
 
     @Test
-    fun threeColumnsFitTelevisionAndRemoteCanMoveFromKeyboardToWordsAndResults() {
+    fun twoColumnsFitTelevisionAndRemoteCanMoveFromKeyboardToWordsAndResults() {
         val controller = Robolectric.buildActivity(Activity::class.java).setup()
         val activity = controller.get()
         val upper = TextView(activity).apply { id = View.generateViewId() }
@@ -123,7 +172,6 @@ class TvSearchPanelTest {
                 upper,
                 { listOf("大佬，该出手了") },
                 { searched = it },
-                {},
             )
         val result =
             TextView(activity).apply {
@@ -141,7 +189,7 @@ class TvSearchPanelTest {
                     View.MeasureSpec.makeMeasureSpec(480, View.MeasureSpec.EXACTLY),
                 )
                 panel.layout(0, 0, width, 480)
-                assertTrue(panel.results.width >= 350)
+                assertFalse(panel.showingResults)
                 assertEquals(width, panel.width)
             }
             panel.input.nextFocusDownId =
@@ -160,7 +208,7 @@ class TvSearchPanelTest {
             ShadowLooper.idleMainLooper()
             val word = panel.suggestions.entry()!!
             assertEquals(word.id, key.nextFocusRightId)
-            assertEquals(result.id, word.nextFocusRightId)
+            assertEquals(word.id, word.nextFocusRightId)
             assertEquals("", searched)
             word.performClick()
             assertEquals("大佬，该出手了", searched)

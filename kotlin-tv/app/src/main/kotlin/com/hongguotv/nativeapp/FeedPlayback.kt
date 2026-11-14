@@ -80,6 +80,7 @@ internal class PublicFeedBackend(
     private val http: OkHttpClient =
         HttpCompat.newBuilder()
             .connectionPool(feedPool)
+            .cookieJar(com.hongguotv.core.MemoryCookies())
             .connectTimeout(12, TimeUnit.SECONDS)
             .readTimeout(20, TimeUnit.SECONDS)
             .callTimeout(35, TimeUnit.SECONDS)
@@ -199,8 +200,7 @@ internal class PublicFeedBackend(
     ) {
         if (closed.get()) return
         cursor.markSeen(series.id)
-        // 同步落盘：这一条是「下次进来别再看到它」的唯一依据，异步写会和退出时的 close()
-        // 抢跑，导致快照丢失。快照受 64 KiB 与最近 540 条去重记录限制。
+        // Update the shared snapshot immediately; disk persistence must not block D-pad input.
         startupCache?.saveCursor(cacheIdentity, category?.route ?: "recommend", cursor.snapshot())
     }
 
@@ -282,11 +282,32 @@ internal class PublicFeedBackend(
                     }
                     verified
                 }
-        val openedTrial = openTrialEpisode(series, hint, speculative)
+        val openedTrial = try {
+            openTrialEpisode(series, hint, speculative)
+        } catch (problem: EmptyPlaybackResponseException) {
+            // Recommended/persisted first-episode hints are not authoritative. Repeating an
+            // obsolete id cannot recover; use the same detail lookup as full-screen playback.
+            if (speculative) throw problem
+            val full = detail(series)
+            val first = full.episodes.firstOrNull() ?: throw problem
+            if (first == hint.episodeId) throw problem
+            val verified = TrialHint(first, full.episodes.size)
+            val updates = synchronized(trialHints) {
+                trialHints[series.id] = verified
+                startupPages.filterValues { page -> page.items.any { it.id == series.id } }
+                    .map { (source, page) ->
+                        val updated = page.copy(trialHints = page.trialHints + (series.id to verified))
+                        startupPages[source] = updated
+                        source to updated
+                    }
+            }
+            updates.forEach { (source, page) -> startupCache?.save(cacheIdentity, source, page) }
+            openTrialEpisode(series, verified, false)
+        }
         return TrialClip(
             Detail(series, listOf(openedTrial.episodeId)),
             openedTrial.opened.video,
-            hint.episodeCount,
+            synchronized(trialHints) { trialHints[series.id] }?.episodeCount ?: hint.episodeCount,
             openedTrial.opened.track,
             openedTrial.displayIndex,
         )
@@ -305,14 +326,20 @@ internal class PublicFeedBackend(
         val id = full.episodes.getOrNull(index) ?: throw java.io.IOException("该集暂不可用")
         val opened = open(id, speculative = true)
         try {
-            opened.video.read(0, minOf(opened.video.total, 512 * 1024L).toInt())
+            opened.video.warm(512 * 1024)
             return TrialClip(full.copy(episodes = listOf(id)), opened.video,
                 full.episodes.size, opened.track, index + 1)
         } catch (error: Throwable) { opened.video.close(); throw error }
     }
 
     // 后台只轻量准备一次，不消耗前台恢复额度；成功后立即交付视频索引。
-    override fun preload(series: Series): TrialClip = trial(series, speculative = true)
+    override fun preload(series: Series): TrialClip {
+        val prepared = trial(series, speculative = true)
+        try {
+            prepared.video.warm(512 * 1024)
+            return prepared
+        } catch (error: Throwable) { prepared.close(); throw error }
+    }
 
     override fun close() {
         if (!closed.compareAndSet(false, true)) return
@@ -353,6 +380,8 @@ internal interface TrialPlayback {
     fun select(clip: TrialClip, position: Long, autoplay: Boolean): Boolean = false
 
     fun canPrefetch(): Boolean = true
+
+    fun suspendPrefetch() {}
 
     fun pause()
 
@@ -400,7 +429,9 @@ internal class Media3TrialPlayback(context: Context, private val speed: Float = 
                 DefaultLoadControl.Builder()
                     .setBufferDurationsMs(2500, 10000, 500, 1000)
                     .setTargetBufferBytes(6 * 1024 * 1024)
-                    .setPrioritizeTimeOverSizeThresholds(false)
+                    // High-bitrate clips can fill the byte budget before enough playback time
+                    // is buffered. Keep loading to the minimum duration to avoid a stall.
+                    .setPrioritizeTimeOverSizeThresholds(true)
                     .build()
             )
             .build()

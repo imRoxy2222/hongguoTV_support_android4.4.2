@@ -64,7 +64,7 @@ android {
     buildTypes {
         getByName("debug") {
             applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug.20261113"
+            versionNameSuffix = "-debug.20261114"
             manifestPlaceholders["appLabel"] = "红果 TV 测试版"
         }
         getByName("release") {

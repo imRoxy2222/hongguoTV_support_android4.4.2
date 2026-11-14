@@ -28,7 +28,7 @@
 
 ```sh
 python3 -m unittest discover -s kotlin-tv/tools -p 'test_*.py'
-python3 scripts/release_tv.py validate kotlin-v0.10.0
+python3 scripts/release_tv.py validate kotlin-v0.15.1
 ./kotlin-tv/gradlew -p kotlin-tv :core:test :app:lintDebug :app:assembleDebug
 ```
 

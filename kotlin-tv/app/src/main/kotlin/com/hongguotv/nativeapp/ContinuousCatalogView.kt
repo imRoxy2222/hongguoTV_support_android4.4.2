@@ -261,6 +261,17 @@ internal class ContinuousCatalogView(
             } else if (available) next.id else top.id
     }
 
+    fun useSearchPresentation() {
+        fullTitle.textSize = 18f
+        fullTitle.maxLines = 1
+        fullTitle.ellipsize = android.text.TextUtils.TruncateAt.END
+        fullTitle.setPadding(dp(6), dp(2), dp(6), dp(6))
+        status.textSize = 16f
+        next.textSize = 16f
+        top.textSize = 16f
+        useRemoteNavigation()
+    }
+
     fun useRemoteNavigation() {
         remoteNavigation = true
         paintStatus()
@@ -378,21 +389,6 @@ internal class CatalogPosterCard(context: Context) : LinearLayout(context) {
             importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
         }
     val poster = FrameLayout(context)
-    private val rank =
-        TextView(context).apply {
-            textSize = 13f
-            setTextColor(TvStyle.text)
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
-            val density = resources.displayMetrics.density
-            setPadding(
-                (6 * density).toInt(),
-                (3 * density).toInt(),
-                (6 * density).toInt(),
-                (3 * density).toInt(),
-            )
-            setBackgroundColor(Color.argb(200, 15, 18, 24))
-            visibility = GONE
-        }
     val title =
         TextView(context).apply {
             textSize = 14f
@@ -429,11 +425,8 @@ internal class CatalogPosterCard(context: Context) : LinearLayout(context) {
                 .coerceAtLeast(1f)
         val defaultHeight = (defaultWidth / TvStyle.POSTER_ASPECT).roundToInt()
         poster.addView(image, FrameLayout.LayoutParams(-1, -1))
-        poster.addView(
-            rank,
-            FrameLayout.LayoutParams(-2, -2, android.view.Gravity.TOP or android.view.Gravity.START),
-        )
         addView(poster, LayoutParams(-1, defaultHeight))
+        // Keep the original cover free of app labels.
         addView(title)
         addView(badge)
     }
@@ -452,15 +445,12 @@ internal class CatalogPosterCard(context: Context) : LinearLayout(context) {
 
     fun show(item: Series, position: RankPosition? = null) {
         title.text = item.title
-        badge.text = position?.heat?.takeIf { it.isNotBlank() } ?: item.badge
-        rank.text = position?.rank?.let { "第 $it 名" }.orEmpty()
-        rank.visibility = if (position?.rank != null) VISIBLE else GONE
-        rank.setTextColor(
-            if ((position?.rank ?: Int.MAX_VALUE) <= 3) TvStyle.accent else TvStyle.text
-        )
+        val rankLabel = position?.rank?.let { "第 $it 名" }.orEmpty()
+        badge.text = listOf(rankLabel, position?.heat?.takeIf { it.isNotBlank() } ?: item.badge)
+            .filter(String::isNotBlank).joinToString(" · ")
         contentDescription =
             listOf(
-                    rank.text.toString(),
+                    rankLabel,
                     item.title,
                     item.badge,
                     item.tags,
@@ -469,5 +459,40 @@ internal class CatalogPosterCard(context: Context) : LinearLayout(context) {
                 )
                 .filter { it.isNotBlank() }
                 .joinToString("，")
+    }
+}
+
+/** Landscape search rows keep the title readable without oversized posters. */
+internal class SearchResultCard(context: Context) : LinearLayout(context) {
+    private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
+    val image = ImageView(context).apply { scaleType = ImageView.ScaleType.CENTER_CROP }
+    private val title = TextView(context).apply {
+        textSize = 18f
+        setTextColor(TvStyle.text)
+        minLines = 2
+        maxLines = 2
+        ellipsize = android.text.TextUtils.TruncateAt.END
+        includeFontPadding = false
+    }
+    private val badge = TextView(context).apply {
+        textSize = 14f
+        setTextColor(TvStyle.muted)
+        maxLines = 1
+        ellipsize = android.text.TextUtils.TruncateAt.END
+    }
+    init {
+        orientation = HORIZONTAL
+        gravity = android.view.Gravity.CENTER_VERTICAL
+        setPadding(dp(8), dp(8), dp(8), dp(8))
+        addView(image, LayoutParams(dp(63), dp(90)).apply { rightMargin = dp(12) })
+        val copy = LinearLayout(context).apply { orientation = VERTICAL }
+        copy.addView(title, LayoutParams(-1, -2))
+        copy.addView(badge, LayoutParams(-1, -2))
+        addView(copy, LayoutParams(0, -2, 1f))
+    }
+    fun show(item: Series) {
+        title.text = item.title
+        badge.text = item.badge
+        contentDescription = item.title + "，" + item.badge
     }
 }

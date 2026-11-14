@@ -17,7 +17,7 @@ REPOSITORY = 'imRoxy2222/hongguoTV_support_android4.4.2'
 PACKAGE = 'com.hongguotv.nativeapp'
 CERTIFICATE = '3579f7a8a91bbbc44688db60fb16a5561921784af23fa92f39b849086d76ca98'
 ROOT = Path(__file__).resolve().parents[1]
-NOTES = '优化电视搜索：历史和联想词两列展示，放大字体并适配系统大字号；输入选词与结果分阶段，返回恢复原选词位置。搜索结果使用封面与大标题卡片，修复拼音查询误过滤中文结果，首屏结果不足时补充加载并支持向下连续浏览。修复收藏页总集数和观看进度被检查更新提示覆盖的问题。保留 Android 5.0+、原证书覆盖升级及通用、ARM32、ARM64 安装包。'
+NOTES = '软件名称统一为 hongguoTV；安装图标和 Android TV 横幅沿用应用内透明 Logo，放大方形图标主体并更新横幅字标。保留原包名、原签名及 Android 4.4.2（API 19）兼容性。'
 
 
 def require(condition, message):
@@ -201,7 +201,7 @@ def prepare(tag):
             bundle.write(native_audio.source_archive(), f'hongguotv-{tag}/third-party/{archive.name}')
     checks = out / 'SHA256SUMS'
     checks.write_text(''.join(f'{sha256(p)}  {p.name}\n' for p in (apk, source, manifest)))
-    (out / 'release-notes.md').write_text(f'''红果 TV {version}（versionCode {code}），Android 4.4 / API 19 及以上兼容目标。\n\n{NOTES}\n\n本版为兼容 Android 4.4.2（API 19）改造：FFmpeg 原生 JNI 解码已禁用，不再随 APK 分发 libffmpegJNI.so，音频解码降级为系统平台解码器（软解）。\n\n原发布证书签名，可同签名覆盖安装并保留本机记录。旧 0.9/0.10 更新器不识别 minSdk 19 元数据，首次需手动同签名覆盖安装，请勿先卸载。\n\n源码提交：{commit}。附 APK、对应完整源码 ZIP（含 GPL-3.0 和第三方许可）、update.json、SHA256SUMS。验收基于 Android 模拟器，不代表覆盖所有厂商真机。\n\n构建要求与步骤见源码 kotlin-tv/AUTO_UPDATES.md；版本取自该标签的 Gradle 配置，不使用运行次数改写版本。\n''')
+    (out / 'release-notes.md').write_text(f'''hongguoTV {version}（versionCode {code}），Android 4.4 / API 19 及以上兼容目标。\n\n{NOTES}\n\n本版为兼容 Android 4.4.2（API 19）改造：FFmpeg 原生 JNI 解码已禁用，不再随 APK 分发 libffmpegJNI.so，音频解码降级为系统平台解码器（软解）。\n\n原发布证书签名，可同签名覆盖安装并保留本机记录。旧 0.9/0.10 更新器不识别 minSdk 19 元数据，首次需手动同签名覆盖安装，请勿先卸载。\n\n源码提交：{commit}。附 APK、对应完整源码 ZIP（含 GPL-3.0 和第三方许可）、update.json、SHA256SUMS。验收基于 Android 模拟器，不代表覆盖所有厂商真机。\n\n构建要求与步骤见源码 kotlin-tv/AUTO_UPDATES.md；版本取自该标签的 Gradle 配置，不使用运行次数改写版本。\n''')
     return data, [apk, source, manifest, checks]
 
 
